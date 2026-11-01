@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập Quản trị viên - ATBM{% endblock %}
+
+{% block content %}
+<div style="max-width: 420px; margin: 4rem auto;">
+    <div class="card" style="padding: 2.5rem 2rem; border-top: 4px solid var(--accent-cyan);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <span class="nav-brand-badge" style="font-size: 0.9rem; padding: 0.35rem 0.8rem;">ATBM SYSTEM ADMIN</span>
+            <h2 style="margin-top: 1rem; font-size: 1.4rem;">Đăng nhập Quản trị viên</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
+                Hệ thống Quản lý Truyền thông Nội bộ & ATBM Engine
+            </p>
+        </div>
+
+        {% if error %}
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-red); color: #fca5a5; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.5rem; text-align: center;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/admin/login">
+            <div class="form-group">
+                <label class="form-label" for="employee_code">Mã nhân viên (Admin Code)</label>
+                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: AD001" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Mật khẩu</label>
+                <input class="form-control" type="password" id="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 1rem; font-weight: 600;">
+                Xác thực & Đăng nhập
+            </button>
+        </form>
+
+        <div style="margin-top: 2rem; text-align: center; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5;">
+            🔒 Phiên làm việc được bảo vệ bằng JWT & HttpOnly Secure Cookies.<br>
+            Mọi thao tác quản trị đều được ghi nhật ký bảo mật.
+        </div>
+    </div>
+</div>
+{% endblock %}

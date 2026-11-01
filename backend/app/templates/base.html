@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cổng Quản Trị Hệ Thống - ATBM{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --border-color: #334155;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background-color: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.15rem;
+        }
+        .nav-brand-badge {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #0f172a;
+            font-weight: 800;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .btn-logout {
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.35rem 0.85rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            background-color: var(--accent-red);
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
+        .alert-security {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--accent-red);
+            padding: 1rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: #fca5a5;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+        th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            background-color: var(--bg-primary);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if current_user %}
+    <nav class="navbar">
+        <a href="/admin/dashboard" class="nav-brand">
+            <span class="nav-brand-badge">ATBM</span>
+            <span>Security Engine Admin</span>
+        </a>
+        <div class="nav-links">
+            <a href="/admin/dashboard" class="nav-link">Tổng quan</a>
+            <a href="/admin/users" class="nav-link">Nhân sự</a>
+            <a href="/admin/posts" class="nav-link">Truyền thông</a>
+            <span style="color: var(--border-color)">|</span>
+            <span style="font-size: 0.85rem; color: var(--text-secondary)">{{ current_user.full_name }} ({{ current_user.employee_code }})</span>
+            <a href="/admin/logout" class="btn-logout">Đăng xuất</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+        {% if current_user %}
+        <div class="alert-security">
+            <strong>🛡️ RÀNG BUỘC KIẾN TRÚC MẬT MÃ (ATBM - KMA):</strong> 
+            Tài khoản Quản trị viên (System Admin) chỉ quản lý tài khoản và bài viết nội bộ. Admin hoàn toàn KHÔNG có thẩm quyền và KHÔNG thể truy cập cơ chế giải mã hồ sơ tố giác sai phạm ẩn danh (Zero-Knowledge Isolation).
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        Học viện Kỹ thuật Mật mã (KMA) - Đồ án An toàn Bảo mật Hệ thống Thông tin &copy; 2026.
+    </footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment & Sensitive configs
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+credentials.json
+
+# SQLite Databases & Local Storage
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+backend/app.db
+backend/uploads/
+uploads/
+.pytest_cache/
+
+# IDE & Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+
+# Agents & Internal Workspace Rules
+.agents/
+.agent/
+AGENTS.md

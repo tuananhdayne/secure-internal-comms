@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Cổng Thanh Tra & Hồ Sơ Tố Giác - ATBM Security Suite{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h2 style="font-size: 1.75rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.25rem;">
+            ⚖️ Cổng Thanh Tra & Điều Tra Tuân Thủ
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">
+            Tiếp nhận, thụ lý và giải mã hồ sơ tố giác sai phạm nặc danh bảo vệ bằng ECIES P-256.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <span class="badge badge-info" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+            🔐 Khóa Giải Mã: ECC P-256 Active
+        </span>
+    </div>
+</div>
+
+<!-- THỐNG KÊ NHANH -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    <div class="card" style="margin-bottom: 0; border-left: 4px solid var(--accent-cyan);">
+        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Tổng hồ sơ tiếp nhận</div>
+        <div style="font-size: 1.85rem; font-weight: 700; color: #f8fafc; margin-top: 0.35rem;">{{ cases|length }}</div>
+    </div>
+    <div class="card" style="margin-bottom: 0; border-left: 4px solid var(--accent-amber);">
+        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Chờ thụ lý (PENDING)</div>
+        <div style="font-size: 1.85rem; font-weight: 700; color: var(--accent-amber); margin-top: 0.35rem;">
+            {{ cases|selectattr("status", "equalto", "PENDING")|list|length }}
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0; border-left: 4px solid var(--accent-blue);">
+        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Đang điều tra (INVESTIGATING)</div>
+        <div style="font-size: 1.85rem; font-weight: 700; color: var(--accent-blue); margin-top: 0.35rem;">
+            {{ cases|selectattr("status", "equalto", "INVESTIGATING")|list|length }}
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0; border-left: 4px solid var(--accent-green);">
+        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Đã xử lý (RESOLVED)</div>
+        <div style="font-size: 1.85rem; font-weight: 700; color: var(--accent-green); margin-top: 0.35rem;">
+            {{ cases|selectattr("status", "equalto", "RESOLVED")|list|length }}
+        </div>
+    </div>
+</div>
+
+<!-- BẢNG DANH SÁCH HỒ SƠ -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="font-size: 1.15rem; font-weight: 600; color: #f8fafc;">
+            Danh Sách Hồ Sơ Tố Giác Nặc Danh (Zero-Knowledge)
+        </h3>
+        <span style="font-size: 0.85rem; color: #94a3b8;">
+            Được bảo vệ bởi Chữ ký mù RSA Chaum & ECIES
+        </span>
+    </div>
+
+    {% if cases %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã Hồ Sơ</th>
+                    <th>Chuyên Mục</th>
+                    <th>Trạng Thái</th>
+                    <th>Khung Giờ Gửi (Bucket)</th>
+                    <th>Bằng Chứng</th>
+                    <th>Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cases %}
+                <tr>
+                    <td>
+                        <strong style="color: var(--accent-cyan); font-family: monospace; font-size: 0.95rem;">
+                            {{ c.case_token }}
+                        </strong>
+                    </td>
+                    <td>
+                        <span class="badge badge-info" style="font-size: 0.8rem;">{{ c.category }}</span>
+                    </td>
+                    <td>
+                        {% if c.status == 'PENDING' %}
+                            <span class="badge badge-warning">Chờ Thụ Lý</span>
+                        {% elif c.status == 'INVESTIGATING' %}
+                            <span class="badge badge-info">Đang Điều Tra</span>
+                        {% elif c.status == 'RESOLVED' %}
+                            <span class="badge badge-success">Đã Xử Lý</span>
+                        {% elif c.status == 'REJECTED' %}
+                            <span class="badge badge-danger">Từ Chối</span>
+                        {% else %}
+                            <span class="badge badge-info">{{ c.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: #94a3b8; font-size: 0.85rem;">
+                        {{ c.created_bucket.strftime('%Y-%m-%d %H:00 UTC') }}
+                    </td>
+                    <td>
+                        <span style="font-size: 0.85rem; color: #cbd5e1;">
+                            📎 {{ c.evidences|length }} tệp (Đã tẩy EXIF)
+                        </span>
+                    </td>
+                    <td>
+                        <button onclick="openCaseModal({{ c.id }})" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; background: #0284c7;">
+                            🔓 Thụ Lý & Giải Mã
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #94a3b8;">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Chưa có hồ sơ tố giác nào trong hệ thống.</p>
+        <p style="font-size: 0.85rem;">Khi nhân viên nộp hồ sơ từ ứng dụng di động, các vụ việc sẽ xuất hiện tại đây.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MODAL THỤ LÝ & GIẢI MÃ ECIES -->
+<div id="caseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; justify-content: center; align-items: center; padding: 1.5rem;">
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+        <button onclick="closeCaseModal()" style="position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <span style="font-size: 1.5rem;">🛡️</span>
+            <div>
+                <h3 id="modalCaseToken" style="font-size: 1.25rem; color: #f8fafc; font-family: monospace;">Đang giải mã hồ sơ...</h3>
+                <span id="modalCategory" class="badge badge-info" style="margin-top: 0.25rem;"></span>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+
+        <!-- NỘI DUNG GIẢI MÃ BẢN RÕ -->
+        <div style="background: #0f172a; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.05em;">
+                    🔑 Nội Dung Đã Giải Mã (ECIES P-256 Private Key)
+                </span>
+                <span style="font-size: 0.75rem; color: #64748b;">Mã hóa đầu cuối E2EE</span>
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.25rem;">Tiêu đề tố giác:</label>
+                <div id="modalDecryptedTitle" style="font-size: 1.05rem; font-weight: 600; color: #f8fafc;"></div>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.25rem;">Nội dung mô tả chi tiết:</label>
+                <div id="modalDecryptedDesc" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px;"></div>
+            </div>
+        </div>
+
+        <!-- CẬP NHẬT TRẠNG THÁI -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div>
+                <div style="font-weight: 600; font-size: 0.9rem; color: #f8fafc;">Tiến độ thụ lý vụ việc</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">Người tố giác sẽ thấy cập nhật này trong Secure Vault trên máy họ.</div>
+            </div>
+            <form id="statusForm" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
+                <select name="new_status" id="modalStatusSelect" class="form-control" style="width: auto; padding: 0.45rem 0.85rem; font-size: 0.85rem;">
+                    <option value="PENDING">Chờ Thụ Lý</option>
+                    <option value="INVESTIGATING">Đang Điều Tra</option>
+                    <option value="RESOLVED">Đã Xử Lý Thành Công</option>
+                    <option value="REJECTED">Bác Bỏ / Từ Chối</option>
+                </select>
+                <button type="submit" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.85rem;">Cập Nhật</button>
+            </form>
+        </div>
+
+        <!-- KHUNG TRAO ĐỔI E2EE CHAT -->
+        <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: #f8fafc; margin-bottom: 0.5rem;">
+                💬 Kênh Trao Đổi Ẩn Danh (E2EE Chat)
+            </div>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">
+                Tin nhắn được mã hóa bằng Public Key của hồ sơ trước khi lưu vào CSDL.
+            </p>
+
+            <div id="modalMessagesList" style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Tin nhắn được nạp động bằng JavaScript -->
+            </div>
+
+            <form id="replyForm" method="POST" style="display: flex; gap: 0.75rem;">
+                <input type="text" name="message" class="form-control" placeholder="Gửi tin nhắn phản hồi / yêu cầu bổ sung chứng cứ..." required style="flex: 1;">
+                <button type="submit" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.9rem;">Gửi Tin Nhắn</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+async function openCaseModal(caseId) {
+    const modal = document.getElementById('caseModal');
+    modal.style.display = 'flex';
+    document.getElementById('modalCaseToken').innerText = 'Đang giải mã hồ sơ #' + caseId + '...';
+    document.getElementById('modalDecryptedTitle').innerText = 'Đang tải...';
+    document.getElementById('modalDecryptedDesc').innerText = 'Đang thực thi giải mã ECIES bằng Officer Private Key...';
+    document.getElementById('modalCategory').innerText = '';
+
+    try {
+        const res = await fetch('/admin/cases/' + caseId + '/decrypt');
+        if (!res.ok) throw new Error('Không thể giải mã');
+        const data = await res.json();
+
+        document.getElementById('modalCaseToken').innerText = data.case_token;
+        document.getElementById('modalCategory').innerText = data.category;
+        document.getElementById('modalDecryptedTitle').innerText = data.title;
+        document.getElementById('modalDecryptedDesc').innerText = data.description;
+        document.getElementById('modalStatusSelect').value = data.status;
+
+        document.getElementById('statusForm').action = '/admin/cases/' + caseId + '/status';
+        document.getElementById('replyForm').action = '/admin/cases/' + caseId + '/reply';
+
+        const msgList = document.getElementById('modalMessagesList');
+        msgList.innerHTML = '';
+        if (data.messages && data.messages.length > 0) {
+            data.messages.forEach(m => {
+                const isOfficer = (m.sender_type === 'COMPLIANCE_OFFICER');
+                const div = document.createElement('div');
+                div.style.padding = '0.5rem 0.75rem';
+                div.style.borderRadius = '6px';
+                div.style.fontSize = '0.85rem';
+                div.style.maxWidth = '80%';
+                if (isOfficer) {
+                    div.style.alignSelf = 'flex-end';
+                    div.style.background = '#1e3a8a';
+                    div.style.color = '#fff';
+                    div.innerHTML = '<strong>Ban Thanh Tra:</strong> [Nội dung mã hóa gửi người nộp] <span style="font-size:0.7rem; color:#93c5fd; margin-left:0.5rem;">' + m.created_at + '</span>';
+                } else {
+                    div.style.alignSelf = 'flex-start';
+                    div.style.background = '#334155';
+                    div.style.color = '#fff';
+                    div.innerHTML = '<strong>Người Tố Giác:</strong> [Tin nhắn bổ sung từ Vault] <span style="font-size:0.7rem; color:#94a3b8; margin-left:0.5rem;">' + m.created_at + '</span>';
+                }
+                msgList.appendChild(div);
+            });
+        } else {
+            msgList.innerHTML = '<div style="color:#64748b; font-size:0.85rem; text-align:center; padding:1rem;">Chưa có tin nhắn nào trong hồ sơ này.</div>';
+        }
+    } catch (err) {
+        document.getElementById('modalDecryptedTitle').innerText = 'Lỗi giải mã';
+        document.getElementById('modalDecryptedDesc').innerText = err.message;
+    }
+}
+
+function closeCaseModal() {
+    document.getElementById('caseModal').style.display = 'none';
+}
+</script>
+{% endblock %}

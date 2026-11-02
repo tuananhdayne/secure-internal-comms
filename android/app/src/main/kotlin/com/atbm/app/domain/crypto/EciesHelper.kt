@@ -205,8 +205,8 @@ object EciesHelper {
         mac.init(SecretKeySpec(salt, "HmacSHA256"))
         val prk = mac.doFinal(sharedSecret)
 
-        // OKM = HMAC-SHA256(PRK, info="ATBM_ECIES_P256" || 0x01)
-        val info = "ATBM_ECIES_P256".toByteArray(Charsets.UTF_8)
+        // OKM = HMAC-SHA256(PRK, info="atbm-ecies-aes256gcm" || 0x01)
+        val info = "atbm-ecies-aes256gcm".toByteArray(Charsets.UTF_8)
         val infoWithByte = ByteArray(info.size + 1)
         System.arraycopy(info, 0, infoWithByte, 0, info.size)
         infoWithByte[info.size] = 0x01.toByte()

@@ -358,9 +358,11 @@ private suspend fun executeFullWhistleblowerFlow(
         val casePrivKeyHex = EciesHelper.exportPrivateKeyToHex(caseKeyPair.private)
         val caseToken = "CASE-${System.currentTimeMillis()}"
 
-        // Mã hóa ECIES nội dung
-        val encTitlePayload = EciesHelper.eciesEncrypt(officerChatPubHex, title.toByteArray(Charsets.UTF_8))
-        val encDescPayload = EciesHelper.eciesEncrypt(officerChatPubHex, description.toByteArray(Charsets.UTF_8))
+        // Mã hóa ECIES nội dung: title|||description theo format giải mã của Ban Thanh tra
+        val fullPayload = "$title|||$description".toByteArray(Charsets.UTF_8)
+        val encPayload = EciesHelper.eciesEncrypt(officerChatPubHex, fullPayload)
+        val encTitleHex = encPayload.ciphertextHex.take(32)
+        val encDescHex = encPayload.ciphertextHex
 
         // Chuẩn bị file bằng chứng giả lập
         val dummyEvidence = "ATBM_EVIDENCE_CLEAN_DATA_${System.currentTimeMillis()}".toByteArray(Charsets.UTF_8)
@@ -369,8 +371,8 @@ private suspend fun executeFullWhistleblowerFlow(
         onStatus("3. Đang tính mã băm toán học H và làm mù m*...")
         val h = RsaBlindClient.computePayloadHash(
             category = category,
-            encryptedTitle = encTitlePayload.ciphertextHex,
-            encryptedDescription = encDescPayload.ciphertextHex,
+            encryptedTitle = encTitleHex,
+            encryptedDescription = encDescHex,
             caseToken = caseToken,
             casePublicKeyHex = casePubKeyHex,
             evidenceFileHashes = listOf(fileSha256),
@@ -428,11 +430,11 @@ private suspend fun executeFullWhistleblowerFlow(
 
         val submitResp = NetworkClient.anonymousApi.submitCase(
             category = category.toRequestBody(textType),
-            encryptedTitle = encTitlePayload.ciphertextHex.toRequestBody(textType),
-            encryptedDescription = encDescPayload.ciphertextHex.toRequestBody(textType),
-            payloadEphemeralPub = encTitlePayload.ephemeralPublicKeyHex.toRequestBody(textType),
-            payloadIv = encTitlePayload.ivHex.toRequestBody(textType),
-            payloadAuthTag = encTitlePayload.authTagHex.toRequestBody(textType),
+            encryptedTitle = encTitleHex.toRequestBody(textType),
+            encryptedDescription = encDescHex.toRequestBody(textType),
+            payloadEphemeralPub = encPayload.ephemeralPublicKeyHex.toRequestBody(textType),
+            payloadIv = encPayload.ivHex.toRequestBody(textType),
+            payloadAuthTag = encPayload.authTagHex.toRequestBody(textType),
             caseToken = caseToken.toRequestBody(textType),
             casePublicKey = casePubKeyHex.toRequestBody(textType),
             unblindedSignature = sHex.toRequestBody(textType),

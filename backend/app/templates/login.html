@@ -6,10 +6,10 @@
 <div style="max-width: 420px; margin: 4rem auto;">
     <div class="card" style="padding: 2.5rem 2rem; border-top: 4px solid var(--accent-cyan);">
         <div style="text-align: center; margin-bottom: 2rem;">
-            <span class="nav-brand-badge" style="font-size: 0.9rem; padding: 0.35rem 0.8rem;">ATBM SYSTEM ADMIN</span>
-            <h2 style="margin-top: 1rem; font-size: 1.4rem;">Đăng nhập Quản trị viên</h2>
+            <span class="nav-brand-badge" style="font-size: 0.9rem; padding: 0.35rem 0.8rem;">ATBM SECURITY SUITE</span>
+            <h2 style="margin-top: 1rem; font-size: 1.4rem;">Cổng Quản Trị & Thanh Tra</h2>
             <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
-                Hệ thống Quản lý Truyền thông Nội bộ & ATBM Engine
+                Dành cho Quản trị viên hệ thống (Admin) & Cán bộ Thanh tra (Officer)
             </p>
         </div>
 
@@ -21,8 +21,8 @@
 
         <form method="POST" action="/admin/login">
             <div class="form-group">
-                <label class="form-label" for="employee_code">Mã nhân viên (Admin Code)</label>
-                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: AD001" required autofocus>
+                <label class="form-label" for="employee_code">Mã nhân sự (Employee Code)</label>
+                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: AD001 (Admin) hoặc TT001 (Thanh tra)" required autofocus>
             </div>
 
             <div class="form-group">
@@ -35,9 +35,10 @@
             </button>
         </form>
 
-        <div style="margin-top: 2rem; text-align: center; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5;">
-            🔒 Phiên làm việc được bảo vệ bằng JWT & HttpOnly Secure Cookies.<br>
-            Mọi thao tác quản trị đều được ghi nhật ký bảo mật.
+        <div style="margin-top: 1.5rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+            💡 <strong>Tài khoản mẫu:</strong><br>
+            • Quản trị viên: <code>AD001</code> / <code>admin123</code><br>
+            • Cán bộ Thanh tra: <code>TT001</code> / <code>officer123</code>
         </div>
     </div>
 </div>

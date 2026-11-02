@@ -10,14 +10,16 @@ Admin TUYỆT ĐỐI KHÔNG CÓ THẨM QUYỀN giải mã hay xem chi tiết n�
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends, Request, Form, Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.db.session import get_db
 from app.models.identified import User, Post, Comment
-from app.models.anonymous import WhistleCase
+from app.models.anonymous import WhistleCase, CaseMessage, CaseEvidence
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.crypto.key_manager import key_manager
+from app.crypto.ecies import ecies_decrypt, ecies_encrypt
 
 # Khởi tạo Jinja2 Templates
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -32,12 +34,14 @@ def admin_root(request: Request, db: Session = Depends(get_db)):
     """Chuyển hướng vào dashboard nếu đã đăng nhập, ngược lại vào login."""
     admin = get_current_admin(request, db)
     if admin:
+        if admin.role == "COMPLIANCE_OFFICER":
+            return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
         return RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
-    """Lấy thông tin SYSTEM_ADMIN từ Cookie admin_token (JWT)."""
+    """Lấy thông tin SYSTEM_ADMIN hoặc COMPLIANCE_OFFICER từ Cookie admin_token (JWT)."""
     token = request.cookies.get("admin_token")
     if not token:
         return None
@@ -49,7 +53,7 @@ def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Option
     user_id_str = payload.get("sub")
     role = payload.get("role")
     
-    if not user_id_str or role != "SYSTEM_ADMIN":
+    if not user_id_str or role not in ["SYSTEM_ADMIN", "COMPLIANCE_OFFICER"]:
         return None
     
     user = db.query(User).filter(User.id == int(user_id_str)).first()
@@ -61,9 +65,11 @@ def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Option
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, db: Session = Depends(get_db)):
-    """Trang hiển thị form đăng nhập Admin."""
+    """Trang hiển thị form đăng nhập Admin & Thanh Tra."""
     admin = get_current_admin(request, db)
     if admin:
+        if admin.role == "COMPLIANCE_OFFICER":
+            return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
         return RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         request=request,
@@ -80,16 +86,16 @@ def login_submit(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Xử lý xác thực đăng nhập Quản trị viên."""
+    """Xử lý xác thực đăng nhập Quản trị viên & Ban Thanh tra."""
     user = db.query(User).filter(User.employee_code == employee_code.strip()).first()
     
-    if not user or not verify_password(password, user.password_hash) or user.role != "SYSTEM_ADMIN":
+    if not user or not verify_password(password, user.password_hash) or user.role not in ["SYSTEM_ADMIN", "COMPLIANCE_OFFICER"]:
         return templates.TemplateResponse(
             request=request,
             name="login.html",
             context={
                 "current_user": None,
-                "error": "Mã nhân viên hoặc mật khẩu quản trị không chính xác."
+                "error": "Mã nhân viên hoặc mật khẩu không chính xác hoặc không có quyền truy cập."
             },
             status_code=status.HTTP_200_OK
         )
@@ -100,14 +106,15 @@ def login_submit(
             name="login.html",
             context={
                 "current_user": None,
-                "error": "Tài khoản quản trị viên này đã bị vô hiệu hóa."
+                "error": "Tài khoản này đã bị vô hiệu hóa."
             },
             status_code=status.HTTP_200_OK
         )
     
     # Tạo JWT Token
     token = create_access_token(subject=str(user.id), role=user.role)
-    redirect = RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    target_url = "/admin/cases" if user.role == "COMPLIANCE_OFFICER" else "/admin/dashboard"
+    redirect = RedirectResponse(url=target_url, status_code=status.HTTP_303_SEE_OTHER)
     redirect.set_cookie(
         key="admin_token",
         value=token,
@@ -274,3 +281,144 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.commit()
     
     return RedirectResponse(url="/admin/posts", status_code=status.HTTP_303_SEE_OTHER)
+
+
+# --- CỤM 2: CỔNG THỤ LÝ & ĐIỀU TRA TUÂN THỦ (COMPLIANCE OFFICER) ---
+
+@router.get("/cases", response_class=HTMLResponse)
+def cases_page(request: Request, db: Session = Depends(get_db)):
+    """Trang danh sách hồ sơ tố giác nặc danh dành cho Ban Thanh tra."""
+    admin = get_current_admin(request, db)
+    if not admin:
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    
+    cases = db.query(WhistleCase).options(
+        joinedload(WhistleCase.evidences),
+        joinedload(WhistleCase.messages)
+    ).order_by(WhistleCase.id.desc()).all()
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="cases.html",
+        context={
+            "current_user": admin,
+            "cases": cases
+        }
+    )
+
+
+@router.get("/cases/{case_id}/decrypt", response_class=JSONResponse)
+def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_db)):
+    """Giải mã hồ sơ ECIES bằng Officer Private Key."""
+    admin = get_current_admin(request, db)
+    if not admin:
+        return JSONResponse(status_code=401, content={"error": "Chưa xác thực"})
+    
+    case = db.query(WhistleCase).options(
+        joinedload(WhistleCase.evidences),
+        joinedload(WhistleCase.messages)
+    ).filter(WhistleCase.id == case_id).first()
+    if not case:
+        return JSONResponse(status_code=404, content={"error": "Không tìm thấy hồ sơ"})
+    
+    title = "[Giải mã thất bại]"
+    description = "[Không thể giải mã bản rõ bằng Private Key hiện tại]"
+    try:
+        decrypted_bytes = ecies_decrypt(
+            recipient_priv_key=key_manager.ec_private_key,
+            ephemeral_pub_hex=case.payload_ephemeral_pub,
+            iv_hex=case.payload_iv,
+            ciphertext_hex=case.encrypted_description,
+            tag_hex=case.payload_auth_tag
+        )
+        decrypted_text = decrypted_bytes.decode("utf-8")
+        if "|||" in decrypted_text:
+            title, description = decrypted_text.split("|||", 1)
+        else:
+            title = "Tiêu đề hồ sơ"
+            description = decrypted_text
+    except Exception as e:
+        # Fallback giải mã encrypted_title nếu có
+        try:
+            t_bytes = ecies_decrypt(
+                recipient_priv_key=key_manager.ec_private_key,
+                ephemeral_pub_hex=case.payload_ephemeral_pub,
+                iv_hex=case.payload_iv,
+                ciphertext_hex=case.encrypted_title,
+                tag_hex=case.payload_auth_tag
+            )
+            title = t_bytes.decode("utf-8")
+        except Exception:
+            pass
+    
+    messages = []
+    for m in case.messages:
+        messages.append({
+            "id": m.id,
+            "sender_type": m.sender_type,
+            "created_at": m.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    
+    return JSONResponse(content={
+        "id": case.id,
+        "case_token": case.case_token,
+        "category": case.category,
+        "status": case.status,
+        "title": title,
+        "description": description,
+        "created_bucket": case.created_bucket.strftime("%Y-%m-%d %H:00:00 (UTC)"),
+        "evidences": [{"id": e.id, "file_url": e.file_url, "mime_type": e.mime_type} for e in case.evidences],
+        "messages": messages
+    })
+
+
+@router.post("/cases/{case_id}/status")
+def update_case_status_web(
+    case_id: int,
+    request: Request,
+    new_status: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Cập nhật trạng thái thụ lý vụ việc."""
+    admin = get_current_admin(request, db)
+    if not admin:
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    
+    case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
+    if case:
+        case.status = new_status.strip().upper()
+        db.commit()
+    return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/cases/{case_id}/reply")
+def reply_case_web(
+    case_id: int,
+    request: Request,
+    message: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Thanh tra viên gửi tin nhắn phản hồi đến người tố giác."""
+    admin = get_current_admin(request, db)
+    if not admin:
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    
+    case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
+    if case and message.strip():
+        try:
+            enc = ecies_encrypt(case.case_public_key, message.strip().encode("utf-8"))
+            new_msg = CaseMessage(
+                case_id=case.id,
+                sender_type="COMPLIANCE_OFFICER",
+                ephemeral_pub_key=enc["ephemeral_public_key"],
+                nonce_iv=enc["iv"],
+                encrypted_message=enc["ciphertext"],
+                auth_tag=enc["auth_tag"],
+                digital_signature="OFFICER_SIGNATURE"
+            )
+            db.add(new_msg)
+            db.commit()
+        except Exception:
+            pass
+    return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
+

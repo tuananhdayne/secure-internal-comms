@@ -14,12 +14,10 @@ def strip_image_metadata(image_bytes: bytes, image_format: str = "JPEG") -> byte
     kèm bất kỳ thẻ EXIF hay thông tin nhạy cảm nào.
     """
     with Image.open(io.BytesIO(image_bytes)) as img:
-        # Chuyển đổi hệ màu sang RGB nếu cần (tránh lỗi với RGBA/P khi lưu JPEG)
-        if img.mode in ("RGBA", "P"):
-            clean_img = img.convert("RGB")
-        else:
-            clean_img = Image.new(img.mode, img.size)
-            clean_img.putdata(list(img.getdata()))
+        # Tạo ảnh mới từ raw bytes để lột sạch toàn bộ metadata/EXIF ở mức C-level
+        mode = "RGB" if img.mode in ("RGBA", "P") else img.mode
+        converted = img.convert("RGB") if img.mode in ("RGBA", "P") else img
+        clean_img = Image.frombytes(mode, converted.size, converted.tobytes())
         
         output = io.BytesIO()
         clean_img.save(output, format=image_format)

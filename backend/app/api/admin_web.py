@@ -313,6 +313,11 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
     admin = get_current_admin(request, db)
     if not admin:
         return JSONResponse(status_code=401, content={"error": "Chưa xác thực"})
+    if admin.role != "COMPLIANCE_OFFICER":
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Truy cập bị từ chối: Chỉ Ban Thanh Tra mới có thẩm quyền giải mã hồ sơ."}
+        )
     
     case = db.query(WhistleCase).options(
         joinedload(WhistleCase.evidences),

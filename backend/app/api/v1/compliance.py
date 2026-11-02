@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -54,15 +55,23 @@ def request_blind_signature(
     ).first()
 
     if not quota:
-        quota = BlindSignQuota(
-            user_id=current_user.id,
-            week_epoch=week_epoch,
-            request_count=0
-        )
-        db.add(quota)
-        db.flush()
+        try:
+            quota = BlindSignQuota(
+                user_id=current_user.id,
+                week_epoch=week_epoch,
+                request_count=0
+            )
+            db.add(quota)
+            db.commit()
+            db.refresh(quota)
+        except IntegrityError:
+            db.rollback()
+            quota = db.query(BlindSignQuota).filter(
+                BlindSignQuota.user_id == current_user.id,
+                BlindSignQuota.week_epoch == week_epoch
+            ).first()
 
-    if quota.request_count >= settings.WEEKLY_BLIND_SIGN_QUOTA:
+    if quota and quota.request_count >= settings.WEEKLY_BLIND_SIGN_QUOTA:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Bạn đã vượt quá hạn mức xin chữ ký mù trong tuần (Tối đa {settings.WEEKLY_BLIND_SIGN_QUOTA} lượt/tuần)."

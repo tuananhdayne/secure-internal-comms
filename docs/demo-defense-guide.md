@@ -26,7 +26,11 @@ Tài liệu cung cấp:
 #### Lệnh thực thi:
 Mở Terminal tại thư mục gốc của đồ án và thực thi:
 ```bash
-python backend/run_security_tests.py
+# 1. Chạy Suite 5 Kịch bản Bảo mật Cốt Lõi KMA
+PYTHONPATH=backend ./backend/.venv/bin/python backend/run_security_tests.py
+
+# 2. Chạy Benchmark Hiệu năng Mật mã Học (Thời gian thực SLA < 20ms)
+PYTHONPATH=backend ./backend/.venv/bin/python backend/tests/benchmark_crypto.py
 ```
 
 #### Các bước thuyết minh theo từng kịch bản in ra màn hình:

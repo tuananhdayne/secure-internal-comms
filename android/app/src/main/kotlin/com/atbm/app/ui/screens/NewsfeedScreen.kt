@@ -174,7 +174,7 @@ fun NewsfeedScreen(
                                 HorizontalDivider(color = BorderDark)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Bình luận (${currentPost.comments.size})",
+                                    text = "Bình luận (${currentPost.comments?.size ?: 0})",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
@@ -278,12 +278,12 @@ fun PostCard(post: PostItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Bởi: ${post.authorName}",
+                    text = "Bởi: ${post.authorName ?: "Ban Giám Đốc"}",
                     fontSize = 11.sp,
                     color = AccentCyan
                 )
                 Text(
-                    text = "${post.comments.size} bình luận",
+                    text = "${post.comments?.size ?: 0} bình luận",
                     fontSize = 11.sp,
                     color = TextSecondary
                 )

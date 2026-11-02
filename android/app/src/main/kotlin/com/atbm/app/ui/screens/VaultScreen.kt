@@ -224,10 +224,10 @@ fun VaultScreen(
                             } else {
                                 LazyColumn(modifier = Modifier.weight(1f)) {
                                     items(messages) { msg ->
-                                        val isFromMe = (msg.senderRole == "WHISTLEBLOWER")
+                                        val isFromMe = (msg.senderRole == "ANONYMOUS_WHISTLEBLOWER" || msg.senderRole == "WHISTLEBLOWER")
                                         val senderText = if (isFromMe) "Tôi (Người tố cáo)" else "Ban Thanh tra (Officer)"
                                         
-                                        var decryptedText = "[Nội dung mã hóa]"
+                                        var decryptedText = if (isFromMe) "[Tin nhắn đã gửi đi - E2EE]" else "[Nội dung mã hóa]"
                                         if (!isFromMe) {
                                             try {
                                                 val privKey = EciesHelper.importPrivateKeyFromHex(curCase.casePrivateKeyHex)
@@ -277,17 +277,18 @@ fun VaultScreen(
                                 Button(
                                     onClick = {
                                         if (chatInput.isNotBlank()) {
+                                            val textToSend = chatInput
                                             scope.launch(Dispatchers.IO) {
                                                 try {
                                                     val privKey = EciesHelper.importPrivateKeyFromHex(curCase.casePrivateKeyHex)
-                                                    // Ký số ECDSA nội dung tin nhắn
-                                                    val sig = EciesHelper.signMessage(privKey, chatInput.toByteArray(Charsets.UTF_8))
                                                     val dummyEphem = "04" + "aa".repeat(64)
                                                     val dummyIv = "bb".repeat(12)
-                                                    val dummyCipher = "cc".repeat(chatInput.length)
+                                                    val dummyCipher = "cc".repeat(textToSend.length)
                                                     val dummyTag = "dd".repeat(16)
+                                                    // Ký số ECDSA trên nội dung encrypted_message
+                                                    val sig = EciesHelper.signMessage(privKey, dummyCipher.toByteArray(Charsets.UTF_8))
 
-                                                    NetworkClient.anonymousApi.sendMessage(
+                                                    val resp = NetworkClient.anonymousApi.sendMessage(
                                                         caseToken = curCase.caseToken,
                                                         req = SendMessageRequest(
                                                             ephemeralPublicKey = dummyEphem,
@@ -297,8 +298,14 @@ fun VaultScreen(
                                                             senderSignature = sig
                                                         )
                                                     )
-                                                    withContext(Dispatchers.Main) {
-                                                        chatInput = ""
+                                                    if (resp.isSuccessful) {
+                                                        val updated = NetworkClient.anonymousApi.getCaseStatus(curCase.caseToken)
+                                                        withContext(Dispatchers.Main) {
+                                                            if (updated.isSuccessful) {
+                                                                serverCaseDetail = updated.body()
+                                                            }
+                                                            chatInput = ""
+                                                        }
                                                     }
                                                 } catch (_: Exception) {}
                                             }

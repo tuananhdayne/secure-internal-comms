@@ -11,8 +11,9 @@ import java.util.concurrent.TimeUnit
  */
 object NetworkClient {
 
-    // 10.0.2.2 là địa chỉ IP máy chủ host đối với Android Emulator
-    private const val DEFAULT_EMULATOR_URL = "http://10.0.2.2:8000/"
+    // 127.0.0.1:8000 kết hợp adb reverse tcp:8000 tcp:8000 cho thiết bị thật qua USB
+    // hoặc 10.0.2.2:8000 đối với Android Emulator
+    private const val DEFAULT_EMULATOR_URL = "http://127.0.0.1:8000/"
     
     private var currentBaseUrl: String = DEFAULT_EMULATOR_URL
     private var retrofit: Retrofit? = null

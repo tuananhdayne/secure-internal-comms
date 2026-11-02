@@ -47,8 +47,15 @@ fun WhistleblowerScreen(
 
     var currentStep by remember { mutableStateOf(1) }
     var category by remember { mutableStateOf("Tham nhũng tài chính") }
+    var customCategory by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+
+    val effectiveCategory = if (category == "Khác") {
+        if (customCategory.isNotBlank()) "Khác: ${customCategory.trim()}".take(45) else "Khác"
+    } else {
+        category
+    }
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
@@ -119,7 +126,7 @@ fun WhistleblowerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Danh mục sai phạm:", fontSize = 13.sp, color = TextSecondary)
                         Spacer(modifier = Modifier.height(6.dp))
-                        listOf("Tham nhũng tài chính", "Quấy rối công sở", "Vi phạm bảo mật ATBM", "Gian lận đấu thầu").forEach { cat ->
+                        listOf("Tham nhũng tài chính", "Quấy rối công sở", "Vi phạm bảo mật ATBM", "Gian lận đấu thầu", "Khác").forEach { cat ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -133,6 +140,23 @@ fun WhistleblowerScreen(
                                 )
                                 Text(cat, fontSize = 13.sp, color = TextPrimary)
                             }
+                        }
+
+                        if (category == "Khác") {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedTextField(
+                                value = customCategory,
+                                onValueChange = { customCategory = it },
+                                label = { Text("Mô tả danh mục khác (tùy chọn)") },
+                                placeholder = { Text("Ví dụ: Bắt nạt nơi làm việc, an toàn lao động...") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, end = 4.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary
+                                )
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -248,7 +272,7 @@ fun WhistleblowerScreen(
                                     executeFullWhistleblowerFlow(
                                         context = context,
                                         token = token,
-                                        category = category,
+                                        category = effectiveCategory,
                                         title = title,
                                         description = description,
                                         onStatus = { statusMessage = it },
@@ -365,7 +389,8 @@ private suspend fun executeFullWhistleblowerFlow(
             onStatus("Lỗi xin chữ ký mù: Quota tuần đã hết hoặc từ chối.")
             return@withContext
         }
-        val sStar = BigInteger(blindResp.body()!!.blindSignature, 16)
+        val rawSig = blindResp.body()!!.blindSignature.removePrefix("0x").removePrefix("0X")
+        val sStar = BigInteger(rawSig, 16)
 
         onStatus("5. Tự bóc mù thu hồi chữ ký s = (s* * r^-1) mod N...")
         val s = RsaBlindClient.unblindSignature(sStar, blinding.r, n)

@@ -7,7 +7,7 @@ import com.google.gson.annotations.SerializedName
 data class TokenResponse(
     @SerializedName("access_token") val accessToken: String,
     @SerializedName("token_type") val tokenType: String,
-    @SerializedName("role") val role: String
+    @SerializedName("role") val role: String? = null
 )
 
 data class UserProfile(
@@ -29,10 +29,10 @@ data class PostItem(
     @SerializedName("id") val id: Int,
     @SerializedName("title") val title: String,
     @SerializedName("content") val content: String,
-    @SerializedName("author_name") val authorName: String,
-    @SerializedName("is_pinned") val isPinned: Boolean,
-    @SerializedName("created_at") val createdAt: String,
-    @SerializedName("comments") val comments: List<CommentItem> = emptyList()
+    @SerializedName("author_name") val authorName: String? = null,
+    @SerializedName("is_pinned") val isPinned: Boolean = false,
+    @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("comments") val comments: List<CommentItem>? = emptyList()
 )
 
 data class CreateCommentRequest(
@@ -68,12 +68,12 @@ data class CaseSubmitResponse(
 
 data class CaseMessageItem(
     @SerializedName("id") val id: Int,
-    @SerializedName("sender_role") val senderRole: String, // "WHISTLEBLOWER" hoặc "OFFICER"
-    @SerializedName("ephemeral_public_key") val ephemeralPublicKey: String,
-    @SerializedName("iv") val iv: String,
-    @SerializedName("ciphertext") val ciphertext: String,
+    @SerializedName("sender_type") val senderRole: String, // "ANONYMOUS_WHISTLEBLOWER" hoặc "OFFICER"
+    @SerializedName("ephemeral_pub_key") val ephemeralPublicKey: String,
+    @SerializedName("nonce_iv") val iv: String,
+    @SerializedName("encrypted_message") val ciphertext: String,
     @SerializedName("auth_tag") val authTag: String,
-    @SerializedName("sender_signature") val senderSignature: String?,
+    @SerializedName("digital_signature") val senderSignature: String?,
     @SerializedName("created_at") val createdAt: String
 )
 
@@ -86,9 +86,9 @@ data class CaseDetailResponse(
 )
 
 data class SendMessageRequest(
-    @SerializedName("ephemeral_public_key") val ephemeralPublicKey: String,
-    @SerializedName("iv") val iv: String,
-    @SerializedName("ciphertext") val ciphertext: String,
+    @SerializedName("ephemeral_pub_key") val ephemeralPublicKey: String,
+    @SerializedName("nonce_iv") val iv: String,
+    @SerializedName("encrypted_message") val ciphertext: String,
     @SerializedName("auth_tag") val authTag: String,
-    @SerializedName("sender_signature") val senderSignature: String
+    @SerializedName("digital_signature") val senderSignature: String
 )

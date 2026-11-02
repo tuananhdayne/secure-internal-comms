@@ -81,6 +81,9 @@ app.include_router(officer.router, prefix=f"{settings.API_V1_STR}/officer")
 app.include_router(admin_web.router)
 
 
+from fastapi.responses import RedirectResponse
+
+
 # 5. Root & Health Check Endpoints
 @app.get("/health", tags=["System"])
 def health_check():
@@ -92,10 +95,7 @@ def health_check():
     }
 
 
-@app.get("/", tags=["System"])
+@app.get("/", include_in_schema=False)
 def root_redirect():
-    """Chuyển hướng hoặc cung cấp thông tin chào mừng."""
-    return {
-        "message": "Hệ thống Secure Internal Comms & Whistleblower Engine đang hoạt động.",
-        "documentation": "/docs"
-    }
+    """Tự động chuyển hướng trang chủ vào giao diện Web Admin & Dashboard."""
+    return RedirectResponse(url="/admin", status_code=303)

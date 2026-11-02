@@ -26,6 +26,16 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 router = APIRouter(prefix="/admin", tags=["Web Admin Interface"])
 
 
+@router.get("", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
+def admin_root(request: Request, db: Session = Depends(get_db)):
+    """Chuyển hướng vào dashboard nếu đã đăng nhập, ngược lại vào login."""
+    admin = get_current_admin(request, db)
+    if admin:
+        return RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+
+
 def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     """Lấy thông tin SYSTEM_ADMIN từ Cookie admin_token (JWT)."""
     token = request.cookies.get("admin_token")

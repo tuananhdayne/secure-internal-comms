@@ -2,14 +2,17 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
 class Settings(BaseSettings):
     """Cấu hình toàn hệ thống Secure Internal Comms & Whistleblower Engine."""
 
     PROJECT_NAME: str = "Secure Internal Comms & Whistleblower Engine"
     API_V1_STR: str = "/api/v1"
 
-    # Database
-    DATABASE_URL: str = "sqlite:///./app.db"
+    # Database: Luôn trỏ tới file app.db trong thư mục backend để nhất quán mọi nơi
+    DATABASE_URL: str = f"sqlite:///{BASE_DIR}/app.db"
 
     # JWT Authentication
     JWT_SECRET_KEY: str = "secure_internal_comms_secret_key_2026_defense"
@@ -20,8 +23,8 @@ class Settings(BaseSettings):
     WEEKLY_BLIND_SIGN_QUOTA: int = 5
 
     # Keys & Storage paths
-    KEYS_DIR: str = "./keys"
-    UPLOAD_DIR: str = "./uploads"
+    KEYS_DIR: str = str(BASE_DIR / "keys")
+    UPLOAD_DIR: str = str(BASE_DIR / "uploads")
 
     model_config = SettingsConfigDict(
         env_file=".env",

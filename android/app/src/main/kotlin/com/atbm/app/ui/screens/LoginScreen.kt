@@ -24,7 +24,7 @@ fun LoginScreen(
     onDirectAnonymousAccess: () -> Unit
 ) {
     var employeeCode by remember { mutableStateOf("NV001") }
-    var password by remember { mutableStateOf("Password123@") }
+    var password by remember { mutableStateOf("employee123") }
     var serverUrl by remember { mutableStateOf(NetworkClient.getBaseUrl()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -162,13 +162,14 @@ fun LoginScreen(
                                 )
                                 if (response.isSuccessful && response.body() != null) {
                                     val token = response.body()!!.accessToken
-                                    val role = response.body()!!.role
+                                    val role = response.body()?.role ?: "EMPLOYEE"
                                     onLoginSuccess(token, role, employeeCode.trim())
                                 } else {
-                                    errorMessage = "Đăng nhập thất bại: Mã nhân viên hoặc mật khẩu sai."
+                                    val errorBody = response.errorBody()?.string() ?: ""
+                                    errorMessage = "Đăng nhập thất bại (HTTP ${response.code()}): $errorBody"
                                 }
                             } catch (e: Exception) {
-                                errorMessage = "Lỗi kết nối: ${e.localizedMessage}"
+                                errorMessage = "Lỗi kết nối (${e.javaClass.simpleName}): ${e.message}"
                             } finally {
                                 isLoading = false
                             }

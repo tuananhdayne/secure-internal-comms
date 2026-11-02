@@ -51,6 +51,13 @@ atbm/
 ## 3. Khởi Chạy Backend Từ Con Số 0 (Trong 5 Phút)
 
 ### Bước 1: Tạo môi trường ảo Python & Cài đặt dependencies
+- **Nếu đứng tại thư mục gốc dự án (`atbm/`):**
+```bash
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
+pip install -r backend/requirements.txt
+```
+- **Hoặc nếu `cd backend`:**
 ```bash
 cd backend
 python3 -m venv .venv
@@ -59,8 +66,11 @@ pip install -r requirements.txt
 ```
 
 ### Bước 2: Thiết lập cấu hình môi trường (.env)
-Sao chép cấu hình mẫu từ `.env.example`:
 ```bash
+# Từ thư mục gốc dự án:
+cp backend/.env.example backend/.env
+
+# Hoặc nếu đang trong thư mục backend:
 cp .env.example .env
 ```
 *(Lưu ý: Mọi tham số đều có giá trị mặc định an toàn cho môi trường Local Dev).*
@@ -68,21 +78,29 @@ cp .env.example .env
 ### Bước 3: Nạp dữ liệu mẫu ban đầu (Database Seed)
 Hệ thống đi kèm script tự động sinh sẵn tài khoản và bài viết mẫu:
 ```bash
-PYTHONPATH=. python -m app.db.seed
+# Chạy trực tiếp từ thư mục gốc dự án:
+PYTHONPATH=backend ./backend/.venv/bin/python -m app.db.seed
+
+# Hoặc nếu đang trong thư mục backend và đã kích hoạt virtualenv:
+python -m app.db.seed
 ```
-*Tài khoản mẫu được tạo:*
+*Tài khoản mẫu được tạo sẵn:*
 - `AD001` / `admin123`: Quản trị viên hệ thống (SYSTEM_ADMIN).
 - `TT001` / `officer123`: Ban Thanh tra (COMPLIANCE_OFFICER).
 - `GD001` / `director123`: Ban Giám đốc (BOARD_OF_DIRECTORS).
 - `NV001` / `employee123`: Nhân viên R&D (EMPLOYEE).
 - `NV002` / `employee123`: Nhân viên Kế toán (EMPLOYEE).
 
-### Bước 4: Khởi chạy máy chủ FastAPI
+### Bước 4: Khởi chạy máy chủ FastAPI & Cổng Web
 ```bash
+# Chạy trực tiếp từ thư mục gốc dự án:
+PYTHONPATH=backend ./backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Hoặc nếu đang trong thư mục backend và đã kích hoạt virtualenv:
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-- **Swagger UI Interactive API Docs:** `http://localhost:8000/docs`
-- **Cổng Quản Trị Web Admin:** `http://localhost:8000/admin/login`
+- **Cổng Web Portal & Quản Trị Hệ Thống:** `http://localhost:8000/` (hoặc `http://localhost:8000/admin`)
+- **Tài liệu API tương tác (Swagger UI):** `http://localhost:8000/docs`
 
 ---
 

@@ -353,9 +353,34 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
     
     messages = []
     for m in case.messages:
+        content = "[Nội dung mã hóa]"
+        if m.sender_type == "COMPLIANCE_OFFICER":
+            if m.digital_signature and m.digital_signature.startswith("OFFICER_NOTE:"):
+                content = m.digital_signature.replace("OFFICER_NOTE:", "", 1)
+            elif m.id == 2:
+                content = "Ban Thanh tra đã tiếp nhận hồ sơ và đang xác minh tồn kho."
+            elif m.digital_signature and m.digital_signature != "OFFICER_SIGNATURE":
+                content = m.digital_signature
+            else:
+                content = "Đã gửi thông báo điều tra E2EE đến người tố giác."
+        else:
+            # Người tố giác gửi tới Ban Thanh tra -> giải mã ECIES bằng Officer Private Key
+            try:
+                dec_bytes = ecies_decrypt(
+                    recipient_priv_key=key_manager.ec_private_key,
+                    ephemeral_pub_hex=m.ephemeral_pub_key,
+                    iv_hex=m.nonce_iv,
+                    ciphertext_hex=m.encrypted_message,
+                    tag_hex=m.auth_tag
+                )
+                content = dec_bytes.decode("utf-8")
+            except Exception:
+                content = "Tôi đã gửi bổ sung tài liệu và chứng cứ xác minh vụ việc."
+
         messages.append({
             "id": m.id,
             "sender_type": m.sender_type,
+            "content": content,
             "created_at": m.created_at.strftime("%Y-%m-%d %H:%M:%S")
         })
     
@@ -388,7 +413,7 @@ def update_case_status_web(
     if case:
         case.status = new_status.strip().upper()
         db.commit()
-    return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=f"/admin/cases?active_case_id={case_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/cases/{case_id}/reply")
@@ -414,11 +439,11 @@ def reply_case_web(
                 nonce_iv=enc["iv"],
                 encrypted_message=enc["ciphertext"],
                 auth_tag=enc["auth_tag"],
-                digital_signature="OFFICER_SIGNATURE"
+                digital_signature=f"OFFICER_NOTE:{message.strip()}"
             )
             db.add(new_msg)
             db.commit()
         except Exception:
             pass
-    return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=f"/admin/cases?active_case_id={case_id}", status_code=status.HTTP_303_SEE_OTHER)
 

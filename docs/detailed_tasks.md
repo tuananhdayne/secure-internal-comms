@@ -2,7 +2,7 @@
 > **Dự án:** Secure Internal Communications & Whistleblower Engine (ATBM - KMA)  
 > **Tài liệu tham chiếu thiết kế:** [docs/implementation_plan.md](file:///home/tuananh/KMA/atbm/docs/implementation_plan.md)  
 > **Nguyên tắc theo dõi:** Cập nhật trạng thái checkbox `[ ]` -> `[x]` ngay khi hoàn thành và verify từng task.  
-> **Ràng buộc workspace:** Tuân thủ nghiêm ngặt 4 bộ quy chuẩn tại `.agents/rules/` (Bảo mật, Kỷ luật, Chuẩn code, Kiểm thử).
+> **Ràng buộc kỹ thuật:** Tuân thủ nghiêm ngặt 4 bộ quy chuẩn phát triển phần mềm (Bảo mật, Kỷ luật kiến trúc, Chuẩn viết mã, Kiểm thử).
 
 ---
 

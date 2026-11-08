@@ -48,11 +48,11 @@ def request_blind_signature(
     now = datetime.now(timezone.utc)
     week_epoch = int(now.strftime("%Y%W"))
 
-    # 2. Truy vấn hạn mức trong tuần
+    # 2. Truy vấn hạn mức trong tuần với khóa dòng (row-level lock) chống race condition
     quota = db.query(BlindSignQuota).filter(
         BlindSignQuota.user_id == current_user.id,
         BlindSignQuota.week_epoch == week_epoch
-    ).first()
+    ).with_for_update().first()
 
     if not quota:
         try:
@@ -69,7 +69,7 @@ def request_blind_signature(
             quota = db.query(BlindSignQuota).filter(
                 BlindSignQuota.user_id == current_user.id,
                 BlindSignQuota.week_epoch == week_epoch
-            ).first()
+            ).with_for_update().first()
 
     if quota and quota.request_count >= settings.WEEKLY_BLIND_SIGN_QUOTA:
         raise HTTPException(

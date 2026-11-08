@@ -281,20 +281,22 @@ fun VaultScreen(
                                             scope.launch(Dispatchers.IO) {
                                                 try {
                                                     val privKey = EciesHelper.importPrivateKeyFromHex(curCase.casePrivateKeyHex)
-                                                    val dummyEphem = "04" + "aa".repeat(64)
-                                                    val dummyIv = "bb".repeat(12)
-                                                    val dummyCipher = "cc".repeat(textToSend.length)
-                                                    val dummyTag = "dd".repeat(16)
+                                                    val officerPubHex = NetworkClient.identifiedApi.getOfficerPublicKeys("").body()?.chatPubHex
+                                                        ?: return@launch
+                                                    val encMsg = EciesHelper.eciesEncrypt(
+                                                        officerPubHex,
+                                                        textToSend.toByteArray(Charsets.UTF_8)
+                                                    )
                                                     // Ký số ECDSA trên nội dung encrypted_message
-                                                    val sig = EciesHelper.signMessage(privKey, dummyCipher.toByteArray(Charsets.UTF_8))
+                                                    val sig = EciesHelper.signMessage(privKey, encMsg.ciphertextHex.toByteArray(Charsets.UTF_8))
 
                                                     val resp = NetworkClient.anonymousApi.sendMessage(
                                                         caseToken = curCase.caseToken,
                                                         req = SendMessageRequest(
-                                                            ephemeralPublicKey = dummyEphem,
-                                                            iv = dummyIv,
-                                                            ciphertext = dummyCipher,
-                                                            authTag = dummyTag,
+                                                            ephemeralPublicKey = encMsg.ephemeralPublicKeyHex,
+                                                            iv = encMsg.ivHex,
+                                                            ciphertext = encMsg.ciphertextHex,
+                                                            authTag = encMsg.authTagHex,
                                                             senderSignature = sig
                                                         )
                                                     )

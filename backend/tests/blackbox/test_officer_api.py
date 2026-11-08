@@ -17,13 +17,14 @@ client = TestClient(app)
 
 officer_token = ""
 employee_token = ""
+admin_token = ""
 test_case_id = 0
 RAW_TITLE = "Sai phạm tài chính nghiêm trọng"
 RAW_DESC = "Phát hiện lập khống hóa đơn 500 triệu đồng."
 
 
 def setup_module(module):
-    global officer_token, employee_token, test_case_id
+    global officer_token, employee_token, admin_token, test_case_id
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
@@ -41,14 +42,24 @@ def setup_module(module):
         department="Kho",
         role="EMPLOYEE"
     )
+    sys_admin = User(
+        employee_code="AD_OFFICER_TEST",
+        password_hash=get_password_hash("pass123"),
+        full_name="Admin Test",
+        department="IT",
+        role="SYSTEM_ADMIN"
+    )
     db.add(officer)
     db.add(emp)
+    db.add(sys_admin)
     db.commit()
     db.refresh(officer)
     db.refresh(emp)
+    db.refresh(sys_admin)
 
     officer_token = create_access_token(subject=str(officer.id), role=officer.role)
     employee_token = create_access_token(subject=str(emp.id), role=emp.role)
+    admin_token = create_access_token(subject=str(sys_admin.id), role=sys_admin.role)
 
     # Mã hóa ECIES bằng khóa công khai của Thanh tra
     officer_pub_hex = key_manager.ec_public_key_hex
@@ -84,6 +95,13 @@ def test_employee_forbidden_officer_routes():
         headers={"Authorization": f"Bearer {employee_token}"}
     )
     assert resp.status_code == 403
+
+    # SYSTEM_ADMIN cũng bị chặn tuyệt đối (Zero-Knowledge Separation of Duties)
+    admin_resp = client.get(
+        f"/api/v1/officer/cases/{test_case_id}/decrypt",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert admin_resp.status_code == 403
 
 
 def test_officer_list_and_decrypt_case():

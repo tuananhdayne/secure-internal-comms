@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 # Thêm đường dẫn backend vào sys.path
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from cryptography.hazmat.primitives.asymmetric import ec

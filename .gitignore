@@ -62,8 +62,15 @@ android/local.properties
 *.apk
 *.aab
 
-# Agents & Internal Workspace Rules
+# Agents & Internal Workspace Rules (Local Only - Never Push to Git)
 .agents/
 .agent/
+.claude/
+.gemini/
+.cursor/
 AGENTS.md
+CLAUDE.md
 .superpowers/
+docs/superpowers/
+danh_gia_skill/
+danh gia skill

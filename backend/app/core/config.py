@@ -27,20 +27,29 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
 
+    def model_post_init(self, __context) -> None:
+        if self.DATABASE_URL.startswith("sqlite:///./"):
+            rel_db = self.DATABASE_URL.removeprefix("sqlite:///./")
+            self.DATABASE_URL = f"sqlite:///{BASE_DIR / rel_db}"
+
     @property
     def keys_path(self) -> Path:
         p = Path(self.KEYS_DIR)
+        if not p.is_absolute():
+            p = BASE_DIR / p
         p.mkdir(parents=True, exist_ok=True)
         return p
 
     @property
     def uploads_path(self) -> Path:
         p = Path(self.UPLOAD_DIR)
+        if not p.is_absolute():
+            p = BASE_DIR / p
         p.mkdir(parents=True, exist_ok=True)
         (p / "evidences").mkdir(parents=True, exist_ok=True)
         (p / "docs").mkdir(parents=True, exist_ok=True)

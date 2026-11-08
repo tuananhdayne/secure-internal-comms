@@ -21,10 +21,10 @@ router = APIRouter(tags=["Officer Investigation"])
 
 @router.get("/cases", response_model=List[OfficerCaseSummary])
 def list_cases_for_investigation(
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER", "SYSTEM_ADMIN"])),
+    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
     db: Session = Depends(get_db)
 ) -> List[OfficerCaseSummary]:
-    """Danh sách tất cả các vụ việc tố giác sai phạm dành cho Ban Thanh tra."""
+    """Danh sách tất cả các vụ việc tố giác sai phạm dành riêng cho Ban Thanh tra."""
     cases = db.query(WhistleCase).options(joinedload(WhistleCase.evidences)).order_by(WhistleCase.id.desc()).all()
 
     results = []
@@ -43,7 +43,7 @@ def list_cases_for_investigation(
 @router.get("/cases/{case_id}/decrypt", response_model=DecryptedCaseResponse)
 def decrypt_case_details(
     case_id: int,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER", "SYSTEM_ADMIN"])),
+    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
     db: Session = Depends(get_db)
 ) -> DecryptedCaseResponse:
     """Ban Thanh tra sử dụng Khóa riêng ECC P-256 (Officer_Chat_PrivateKey) để giải mã hồ sơ tố giác.
@@ -99,10 +99,10 @@ def decrypt_case_details(
 def update_case_status(
     case_id: int,
     status_in: CaseStatusUpdate,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER", "SYSTEM_ADMIN"])),
+    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
     db: Session = Depends(get_db)
 ) -> OfficerCaseSummary:
-    """Cập nhật trạng thái xử lý vụ việc (PENDING, INVESTIGATING, RESOLVED, REJECTED)."""
+    """Cập nhật trạng thái xử lý vụ việc (PENDING, INVESTIGATING, UNDER_INVESTIGATION, RESOLVED, REJECTED)."""
     case = db.query(WhistleCase).options(joinedload(WhistleCase.evidences)).filter(WhistleCase.id == case_id).first()
     if not case:
         raise HTTPException(
@@ -110,7 +110,15 @@ def update_case_status(
             detail="Hồ sơ tố giác không tồn tại."
         )
 
-    case.status = status_in.status.strip().upper()
+    new_status = status_in.status.strip().upper()
+    valid_statuses = {"PENDING", "RECEIVED", "INVESTIGATING", "UNDER_INVESTIGATION", "RESOLVED", "REJECTED"}
+    if new_status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Trạng thái không hợp lệ: {new_status}"
+        )
+
+    case.status = new_status
     db.commit()
     db.refresh(case)
 
@@ -128,7 +136,7 @@ def update_case_status(
 def reply_to_anonymous_whistleblower(
     case_id: int,
     reply_in: OfficerReplyRequest,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER", "SYSTEM_ADMIN"])),
+    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
     db: Session = Depends(get_db)
 ) -> CaseMessageResponse:
     """Ban Thanh tra gửi tin nhắn điều tra E2EE tới người tố giác (sử dụng case_public_key của vụ việc)."""

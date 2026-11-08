@@ -1,8 +1,7 @@
 # Kế Hoạch Kiểm Thử Toàn Diện & Phân Rã Task (Master Test Plan & Task Breakdown)
 
 > **Dự án:** Secure Internal Communications & Whistleblower Engine (ATBM) - Học viện Kỹ thuật Mật mã (KMA)  
-> **Áp dụng cho:** Agentic Workers & Kỹ sư kiểm thử ATBM  
-> **Sub-skill đề xuất:** `superpowers:executing-plans` hoặc `superpowers:subagent-driven-development`  
+> **Áp dụng cho:** Nhóm phát triển & Kỹ sư kiểm thử ATBM  
 > **Trạng thái:** Sẵn sàng thực thi (Ready for Execution)
 
 ---

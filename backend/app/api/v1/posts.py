@@ -10,25 +10,30 @@ from app.api.deps import get_current_user, require_role
 router = APIRouter(tags=["Posts & Newsfeed"])
 
 
-@router.get("", response_model=List[PostResponse])
+@router.get("", response_model=List[PostDetailResponse])
 def list_posts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
-) -> List[PostResponse]:
+) -> List[PostDetailResponse]:
     """Xem danh sách bản tin nội bộ (Hỗ trợ phân loại và ghim bài viết lên đầu)."""
-    query = db.query(Post).options(joinedload(Post.author))
+    query = db.query(Post).options(
+        joinedload(Post.author),
+        joinedload(Post.comments).joinedload(Comment.author)
+    )
     if category:
         query = query.filter(Post.category == category)
 
     posts = query.order_by(Post.is_pinned.desc(), Post.created_at.desc()).offset(skip).limit(limit).all()
 
-    results: List[PostResponse] = []
+    results: List[PostDetailResponse] = []
     for p in posts:
-        resp = PostResponse.model_validate(p)
+        resp = PostDetailResponse.model_validate(p)
         resp.author_name = p.author.full_name if p.author else "Hệ thống"
+        for c_resp, c_model in zip(resp.comments, p.comments):
+            c_resp.author_name = c_model.author.full_name if c_model.author else "Vô danh"
         results.append(resp)
 
     return results

@@ -179,6 +179,19 @@ fun NewsfeedScreen(
                                     fontSize = 13.sp
                                 )
 
+                                val commentList = currentPost.comments ?: emptyList()
+                                if (commentList.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    commentList.takeLast(3).forEach { c ->
+                                        Text(
+                                            text = "• ${c.authorName}: ${c.content}",
+                                            fontSize = 12.sp,
+                                            color = TextPrimary,
+                                            modifier = Modifier.padding(vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
                                 Spacer(modifier = Modifier.height(8.dp))
                                 OutlinedTextField(
                                     value = newCommentText,
@@ -203,8 +216,11 @@ fun NewsfeedScreen(
                                                     )
                                                     if (resp.isSuccessful) {
                                                         newCommentText = ""
+                                                        val detailResp = NetworkClient.identifiedApi.getPostDetail("Bearer $token", currentPost.id)
+                                                        if (detailResp.isSuccessful && detailResp.body() != null) {
+                                                            selectedPost = detailResp.body()
+                                                        }
                                                         fetchPosts()
-                                                        selectedPost = null
                                                     }
                                                 } catch (_: Exception) {}
                                             }

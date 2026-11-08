@@ -120,9 +120,9 @@
 </div>
 
 <!-- MODAL THỤ LÝ & GIẢI MÃ ECIES -->
-<div id="caseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; justify-content: center; align-items: center; padding: 1.5rem;">
+<div id="caseModal" role="dialog" aria-modal="true" aria-labelledby="modalCaseToken" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; justify-content: center; align-items: center; padding: 1.5rem;">
     <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
-        <button onclick="closeCaseModal()" style="position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <button onclick="closeCaseModal()" aria-label="Đóng hộp thoại chi tiết" style="position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
         
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
             <span style="font-size: 1.5rem;">🛡️</span>
@@ -201,8 +201,8 @@ async function openCaseModal(caseId) {
 
     try {
         const res = await fetch('/admin/cases/' + caseId + '/decrypt');
-        if (!res.ok) throw new Error('Không thể giải mã');
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Không thể giải mã');
 
         document.getElementById('modalCaseToken').innerText = data.case_token;
         document.getElementById('modalCategory').innerText = data.category;
@@ -265,6 +265,16 @@ function closeCaseModal() {
     url.searchParams.delete('active_case_id');
     window.history.replaceState({}, '', url);
 }
+
+// Đóng modal bằng phím Escape (Accessibility)
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('caseModal');
+        if (modal && modal.style.display !== 'none') {
+            closeCaseModal();
+        }
+    }
+});
 
 // Tự động mở modal nếu có query param active_case_id
 window.addEventListener('DOMContentLoaded', () => {

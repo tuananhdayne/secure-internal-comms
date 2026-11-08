@@ -9,6 +9,7 @@ Admin TUYỆT ĐỐI KHÔNG CÓ THẨM QUYỀN giải mã hay xem chi tiết n�
 
 from pathlib import Path
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, Request, Form, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -20,6 +21,8 @@ from app.models.anonymous import WhistleCase, CaseMessage, CaseEvidence
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
 from app.crypto.key_manager import key_manager
 from app.crypto.ecies import ecies_decrypt, ecies_encrypt
+
+logger = logging.getLogger(__name__)
 
 # Khởi tạo Jinja2 Templates
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -163,10 +166,12 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/users", response_class=HTMLResponse)
 def users_list(request: Request, db: Session = Depends(get_db)):
-    """Trang danh sách quản lý nhân sự."""
+    """Trang danh sách quản lý nhân sự (Chỉ dành cho SYSTEM_ADMIN)."""
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "SYSTEM_ADMIN":
+        return RedirectResponse(url="/admin/cases", status_code=status.HTTP_303_SEE_OTHER)
     
     users = db.query(User).order_by(User.id.asc()).all()
     return templates.TemplateResponse(
@@ -189,18 +194,31 @@ def create_user(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Tạo mới một tài khoản nhân sự."""
+    """Tạo mới một tài khoản nhân sự (Chỉ dành cho SYSTEM_ADMIN)."""
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "SYSTEM_ADMIN":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"error": "Truy cập bị từ chối: Chỉ Quản trị viên hệ thống mới được tạo tài khoản."}
+        )
     
+    valid_roles = {"EMPLOYEE", "COMPLIANCE_OFFICER", "BOARD_DIRECTOR", "SYSTEM_ADMIN"}
+    role_clean = role.strip().upper()
+    if role_clean not in valid_roles:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": f"Vai trò không hợp lệ: {role}"}
+        )
+
     existing = db.query(User).filter(User.employee_code == employee_code.strip()).first()
     if not existing:
         new_user = User(
             employee_code=employee_code.strip(),
             full_name=full_name.strip(),
             department=department.strip(),
-            role=role.strip(),
+            role=role_clean,
             password_hash=get_password_hash(password),
             is_active=True
         )
@@ -212,10 +230,15 @@ def create_user(
 
 @router.post("/users/toggle/{user_id}")
 def toggle_user(user_id: int, request: Request, db: Session = Depends(get_db)):
-    """Khóa hoặc mở khóa tài khoản nhân viên."""
+    """Khóa hoặc mở khóa tài khoản nhân viên (Chỉ dành cho SYSTEM_ADMIN)."""
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "SYSTEM_ADMIN":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"error": "Truy cập bị từ chối: Chỉ Quản trị viên hệ thống mới được khóa/mở khóa tài khoản."}
+        )
     
     target_user = db.query(User).filter(User.id == user_id).first()
     if target_user and target_user.role != "SYSTEM_ADMIN":
@@ -291,6 +314,8 @@ def cases_page(request: Request, db: Session = Depends(get_db)):
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "COMPLIANCE_OFFICER":
+        return RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     
     cases = db.query(WhistleCase).options(
         joinedload(WhistleCase.evidences),
@@ -343,29 +368,30 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
             title = "Tiêu đề hồ sơ"
             description = decrypted_text
     except Exception as e:
-        # Fallback giải mã encrypted_title nếu có
-        try:
-            t_bytes = ecies_decrypt(
-                recipient_priv_key=key_manager.ec_private_key,
-                ephemeral_pub_hex=case.payload_ephemeral_pub,
-                iv_hex=case.payload_iv,
-                ciphertext_hex=case.encrypted_title,
-                tag_hex=case.payload_auth_tag
-            )
-            title = t_bytes.decode("utf-8")
-        except Exception:
-            pass
+        logger.warning(f"Không thể giải mã nội dung hồ sơ {case_id}: {str(e)}")
     
     messages = []
     for m in case.messages:
         content = "[Nội dung mã hóa]"
         if m.sender_type == "COMPLIANCE_OFFICER":
-            if m.digital_signature and m.digital_signature.startswith("OFFICER_NOTE:"):
+            if m.digital_signature and m.digital_signature.startswith("ENC:"):
+                # Giải mã bản sao của chính Officer bằng Officer Private Key
+                try:
+                    parts = m.digital_signature.split(":")
+                    dec_bytes = ecies_decrypt(
+                        recipient_priv_key=key_manager.ec_private_key,
+                        ephemeral_pub_hex=parts[1],
+                        iv_hex=parts[2],
+                        ciphertext_hex=parts[3],
+                        tag_hex=parts[4]
+                    )
+                    content = dec_bytes.decode("utf-8")
+                except Exception as e:
+                    logger.warning(f"Lỗi giải mã tin nhắn Officer {m.id}: {str(e)}")
+                    content = "[Không thể giải mã tin nhắn phản hồi]"
+            elif m.digital_signature and m.digital_signature.startswith("OFFICER_NOTE:"):
+                # Tương thích ngược với các bản ghi cũ trước khi vá
                 content = m.digital_signature.replace("OFFICER_NOTE:", "", 1)
-            elif m.id == 2:
-                content = "Ban Thanh tra đã tiếp nhận hồ sơ và đang xác minh tồn kho."
-            elif m.digital_signature and m.digital_signature != "OFFICER_SIGNATURE":
-                content = m.digital_signature
             else:
                 content = "Đã gửi thông báo điều tra E2EE đến người tố giác."
         else:
@@ -379,8 +405,9 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
                     tag_hex=m.auth_tag
                 )
                 content = dec_bytes.decode("utf-8")
-            except Exception:
-                content = "Tôi đã gửi bổ sung tài liệu và chứng cứ xác minh vụ việc."
+            except Exception as e:
+                logger.warning(f"Lỗi giải mã tin nhắn tố giác {m.id}: {str(e)}")
+                content = "[Tin nhắn mã hóa E2EE không thể giải mã]"
 
         messages.append({
             "id": m.id,
@@ -409,14 +436,27 @@ def update_case_status_web(
     new_status: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Cập nhật trạng thái thụ lý vụ việc."""
+    """Cập nhật trạng thái thụ lý vụ việc (Chỉ dành riêng cho COMPLIANCE_OFFICER)."""
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "COMPLIANCE_OFFICER":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"error": "Truy cập bị từ chối: Chỉ Ban Thanh Tra mới có thẩm quyền cập nhật trạng thái hồ sơ."}
+        )
     
+    valid_statuses = {"PENDING", "INVESTIGATING", "UNDER_INVESTIGATION", "RESOLVED", "REJECTED"}
+    status_clean = new_status.strip().upper()
+    if status_clean not in valid_statuses:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": f"Trạng thái không hợp lệ: {new_status}"}
+        )
+
     case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
     if case:
-        case.status = new_status.strip().upper()
+        case.status = status_clean
         db.commit()
     return RedirectResponse(url=f"/admin/cases?active_case_id={case_id}", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -428,27 +468,50 @@ def reply_case_web(
     message: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Thanh tra viên gửi tin nhắn phản hồi đến người tố giác."""
+    """Thanh tra viên gửi tin nhắn phản hồi đến người tố giác (Chỉ dành riêng cho COMPLIANCE_OFFICER)."""
     admin = get_current_admin(request, db)
     if not admin:
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    if admin.role != "COMPLIANCE_OFFICER":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"error": "Truy cập bị từ chối: Chỉ Ban Thanh Tra mới có thẩm quyền gửi tin nhắn điều tra."}
+        )
     
+    msg_clean = message.strip()
+    if not msg_clean:
+        return RedirectResponse(url=f"/admin/cases?active_case_id={case_id}", status_code=status.HTTP_303_SEE_OTHER)
+
     case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
-    if case and message.strip():
-        try:
-            enc = ecies_encrypt(case.case_public_key, message.strip().encode("utf-8"))
-            new_msg = CaseMessage(
-                case_id=case.id,
-                sender_type="COMPLIANCE_OFFICER",
-                ephemeral_pub_key=enc["ephemeral_public_key"],
-                nonce_iv=enc["iv"],
-                encrypted_message=enc["ciphertext"],
-                auth_tag=enc["auth_tag"],
-                digital_signature=f"OFFICER_NOTE:{message.strip()}"
-            )
-            db.add(new_msg)
-            db.commit()
-        except Exception:
-            pass
+    if not case:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Hồ sơ không tồn tại"})
+
+    try:
+        # 1. Mã hóa ECIES bằng Public Key của hồ sơ tố giác (người tố giác dùng Private Key giải mã)
+        enc_for_whistleblower = ecies_encrypt(case.case_public_key, msg_clean.encode("utf-8"))
+
+        # 2. Mã hóa bản sao cho chính Officer bằng Officer Public Key (để xem lại an toàn trên web, không lộ bản rõ)
+        enc_for_officer = ecies_encrypt(key_manager.ec_public_key_hex, msg_clean.encode("utf-8"))
+        officer_sig_payload = f"ENC:{enc_for_officer['ephemeral_public_key']}:{enc_for_officer['iv']}:{enc_for_officer['ciphertext']}:{enc_for_officer['auth_tag']}"
+
+        new_msg = CaseMessage(
+            case_id=case.id,
+            sender_type="COMPLIANCE_OFFICER",
+            ephemeral_pub_key=enc_for_whistleblower["ephemeral_public_key"],
+            nonce_iv=enc_for_whistleblower["iv"],
+            encrypted_message=enc_for_whistleblower["ciphertext"],
+            auth_tag=enc_for_whistleblower["auth_tag"],
+            digital_signature=officer_sig_payload
+        )
+        db.add(new_msg)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Lỗi khi mã hóa hoặc ghi dữ liệu phản hồi vụ việc {case_id}: {str(e)}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Không thể gửi tin nhắn phản hồi do lỗi mã hóa hoặc cơ sở dữ liệu."}
+        )
+
     return RedirectResponse(url=f"/admin/cases?active_case_id={case_id}", status_code=status.HTTP_303_SEE_OTHER)
 

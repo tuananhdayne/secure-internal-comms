@@ -37,7 +37,7 @@
                         <span class="badge badge-danger">ADMIN</span>
                         {% elif u.role == "COMPLIANCE_OFFICER" %}
                         <span class="badge badge-warning">OFFICER</span>
-                        {% elif u.role == "BOARD_OF_DIRECTORS" %}
+                        {% elif u.role in ("BOARD_DIRECTOR", "BOARD_OF_DIRECTORS") %}
                         <span class="badge badge-info">DIRECTOR</span>
                         {% else %}
                         <span class="badge badge-success">EMPLOYEE</span>
@@ -93,7 +93,7 @@
                 <select class="form-control" id="role" name="role" required>
                     <option value="EMPLOYEE">EMPLOYEE (Nhân viên)</option>
                     <option value="COMPLIANCE_OFFICER">COMPLIANCE_OFFICER (Ban Thanh tra)</option>
-                    <option value="BOARD_OF_DIRECTORS">BOARD_OF_DIRECTORS (Ban Giám đốc)</option>
+                    <option value="BOARD_DIRECTOR">BOARD_DIRECTOR (Ban Giám đốc)</option>
                 </select>
             </div>
             <div class="form-group">

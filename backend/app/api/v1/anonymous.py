@@ -1,8 +1,10 @@
 import os
+import io
 import uuid
 import hashlib
 from datetime import datetime, timezone
 from typing import List, Optional
+from PIL import Image
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -13,6 +15,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.anonymous import WhistleCase, CaseEvidence, CaseMessage
 from app.crypto.blind_signature import BlindSignatureEngine
+from app.crypto.sanitizer import strip_image_metadata
 from app.schemas.anonymous import (
     CaseSubmitResponse,
     CaseStatusResponse,
@@ -70,18 +73,34 @@ async def submit_anonymous_case(
             if not content:
                 continue
 
+            # Phòng thủ chiều sâu: Tẩy sạch siêu dữ liệu EXIF/GPS nếu phát hiện ảnh còn chứa thẻ EXIF
+            is_image = (
+                (f.content_type and f.content_type.startswith("image/"))
+                or (f.filename and f.filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")))
+            )
+            if is_image:
+                try:
+                    with Image.open(io.BytesIO(content)) as img:
+                        exif = img._getexif()
+                        if exif:
+                            fmt = "PNG" if (f.filename and f.filename.lower().endswith(".png")) else "JPEG"
+                            content = strip_image_metadata(content, image_format=fmt)
+                except Exception:
+                    pass
+
             # Tính mã băm SHA256 của file đã mã hóa
             f_hash = hashlib.sha256(content).hexdigest()
 
-            # Lưu file vào thư mục an toàn
-            safe_filename = f"{uuid.uuid4().hex}_{f.filename or 'evidence.bin'}"
+            # Lưu file vào thư mục an toàn (chống Path Traversal qua tên file)
+            clean_basename = os.path.basename(f.filename or "evidence.bin") or "evidence.bin"
+            safe_filename = f"{uuid.uuid4().hex}_{clean_basename}"
             file_dest = evidences_dir / safe_filename
             with open(file_dest, "wb") as out_file:
                 out_file.write(content)
 
             saved_file_paths.append(file_dest)
             evidence_items.append({
-                "file_url": str(file_dest),
+                "file_url": f"/uploads/evidences/{safe_filename}",
                 "file_sha256_hash": f_hash,
                 "mime_type": f.content_type or "application/octet-stream"
             })
@@ -182,13 +201,23 @@ def get_anonymous_case_status(
             detail="Không tìm thấy hồ sơ với mã case_token này."
         )
 
+    sanitized_messages = []
+    for m in case.messages:
+        resp_m = CaseMessageResponse.model_validate(m)
+        # Triệt tiêu rò rỉ bản rõ / payload nội bộ khi trả về cho anonymous client
+        if m.sender_type == "COMPLIANCE_OFFICER" and (
+            m.digital_signature.startswith("ENC:") or m.digital_signature.startswith("OFFICER_NOTE:")
+        ):
+            resp_m.digital_signature = "OFFICER_P256_VERIFIED_SIGNATURE"
+        sanitized_messages.append(resp_m)
+
     return CaseStatusResponse(
         case_token=case.case_token,
         category=case.category,
         status=case.status,
         created_bucket=case.created_bucket,
         evidences=[CaseEvidenceResponse.model_validate(e) for e in case.evidences],
-        messages=[CaseMessageResponse.model_validate(m) for m in case.messages]
+        messages=sanitized_messages
     )
 
 

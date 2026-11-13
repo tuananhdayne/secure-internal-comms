@@ -184,8 +184,8 @@
                 <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 0.4rem;">
                     <span>🔑</span> Nội Dung Đã Giải Mã (ECIES P-256 Private Key)
                 </span>
-                <span class="badge badge-success" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
-                    E2EE Verified
+                <span id="modalDecryptedBadge" class="badge badge-info" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
+                    Đang kiểm tra
                 </span>
             </div>
             <div style="margin-bottom: 0.9rem;">
@@ -220,7 +220,7 @@
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">Người tố giác sẽ thấy cập nhật này trong Secure Vault trên ứng dụng di động.</div>
             </div>
             <form id="statusForm" method="POST" style="display: flex; gap: 0.6rem; align-items: center;">
-                <select name="new_status" id="modalStatusSelect" class="form-control" style="width: auto; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+                <select name="new_status" id="modalStatusSelect" class="form-control" style="width: auto; padding: 0.5rem 2.2rem 0.5rem 0.9rem; font-size: 0.85rem;">
                     <option value="PENDING">Chờ Thụ Lý</option>
                     <option value="INVESTIGATING">Đang Điều Tra</option>
                     <option value="RESOLVED">Đã Xử Lý Thành Công</option>
@@ -264,6 +264,12 @@ async function openCaseModal(caseId) {
     document.getElementById('modalDecryptedTitle').innerText = 'Đang tải dữ liệu mật mã...';
     document.getElementById('modalDecryptedDesc').innerText = 'Đang thực thi giải mã ECIES bằng Officer Private Key...';
     document.getElementById('modalCategory').innerText = '';
+    
+    const badgeEl = document.getElementById('modalDecryptedBadge');
+    if (badgeEl) {
+        badgeEl.className = 'badge badge-info';
+        badgeEl.innerText = 'Đang kiểm tra';
+    }
 
     try {
         const res = await fetch('/admin/cases/' + caseId + '/decrypt');
@@ -276,10 +282,23 @@ async function openCaseModal(caseId) {
         document.getElementById('modalDecryptedDesc').innerText = data.description;
         document.getElementById('modalStatusSelect').value = data.status;
 
+        // Logic kiểm tra tính toàn vẹn và trạng thái giải mã (Fix P0-2)
+        const isFailed = (data.title && (data.title.includes('Giải mã thất bại') || data.title.includes('thất bại'))) ||
+                         (data.description && (data.description.includes('Không thể giải mã') || data.description.includes('thất bại')));
+        if (badgeEl) {
+            if (isFailed) {
+                badgeEl.className = 'badge badge-warning';
+                badgeEl.innerHTML = '⚠️ Chưa Thể Giải Mã';
+            } else {
+                badgeEl.className = 'badge badge-success';
+                badgeEl.innerHTML = '🛡️ E2EE Verified';
+            }
+        }
+
         document.getElementById('statusForm').action = '/admin/cases/' + caseId + '/status';
         document.getElementById('replyForm').action = '/admin/cases/' + caseId + '/reply';
 
-        // Render danh sách bằng chứng đa phương tiện
+        // Render danh sách bằng chứng đa phương tiện (Fix P1-4: Xử lý tên file dài)
         const evList = document.getElementById('modalEvidenceList');
         const evCount = document.getElementById('modalEvidenceCount');
         evList.innerHTML = '';
@@ -296,6 +315,7 @@ async function openCaseModal(caseId) {
                 const mime = (ev.mime_type || '').toLowerCase();
                 const url = ev.file_url;
                 const fileName = url.substring(url.lastIndexOf('/') + 1);
+                const shortName = fileName.length > 28 ? fileName.substring(0, 14) + '...' + fileName.substring(fileName.length - 10) : fileName;
                 const hashPreview = ev.file_sha256_hash ? ev.file_sha256_hash.substring(0, 16) + '...' : '';
 
                 let mediaHtml = '';
@@ -317,12 +337,12 @@ async function openCaseModal(caseId) {
                 }
 
                 itemDiv.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">' +
-                    '<div style="display: flex; align-items: center; gap: 0.6rem;">' +
-                    '<span style="font-size: 1.25rem;">' + (mime.startsWith('image/') ? '📷' : mime.startsWith('audio/') ? '🎙️' : mime.startsWith('video/') ? '🎥' : '📄') + '</span>' +
-                    '<span style="font-size: 0.88rem; font-weight: 600; color: #f1f5f9; word-break: break-all;">' + fileName + '</span>' +
-                    '<span class="badge badge-info" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">' + (mime || 'binary') + '</span>' +
+                    '<div style="display: flex; align-items: center; gap: 0.6rem; min-width: 0; max-width: 65%;">' +
+                    '<span style="font-size: 1.25rem; flex-shrink: 0;">' + (mime.startsWith('image/') ? '📷' : mime.startsWith('audio/') ? '🎙️' : mime.startsWith('video/') ? '🎥' : '📄') + '</span>' +
+                    '<span style="font-size: 0.88rem; font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + fileName + '">' + shortName + '</span>' +
+                    '<span class="badge badge-info" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; flex-shrink: 0;">' + (mime || 'binary') + '</span>' +
                     '</div>' +
-                    '<div style="display: flex; align-items: center; gap: 0.75rem;">' +
+                    '<div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">' +
                     (hashPreview ? '<span style="font-family: ui-monospace, monospace; font-size: 0.72rem; color: var(--text-muted); background: rgba(0,0,0,0.25); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" title="SHA-256: ' + (ev.file_sha256_hash || '') + '">SHA-256: ' + hashPreview + '</span>' : '') +
                     '<a href="' + url + '" download="' + fileName + '" class="btn btn-sm" style="background: rgba(255, 255, 255, 0.08); color: var(--text-primary); border: 1px solid var(--border-subtle);">' +
                     '⬇ Tải tệp' +
@@ -378,11 +398,18 @@ async function openCaseModal(caseId) {
             });
             msgList.scrollTop = msgList.scrollHeight;
         } else {
-            msgList.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:1.25rem;">Chưa có tin nhắn nào trong hồ sơ này.</div>';
+            msgList.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:1.25rem; display:flex; flex-direction:column; align-items:center; gap:0.4rem;">' +
+                                '<span style="font-size:1.4rem; opacity:0.6;">💬</span>' +
+                                '<span>Chưa có tin nhắn nào trong hồ sơ này. Gửi phản hồi bên dưới để bắt đầu trao đổi E2EE.</span>' +
+                                '</div>';
         }
     } catch (err) {
         document.getElementById('modalDecryptedTitle').innerText = 'Lỗi giải mã';
         document.getElementById('modalDecryptedDesc').innerText = err.message;
+        if (badgeEl) {
+            badgeEl.className = 'badge badge-danger';
+            badgeEl.innerHTML = '❌ Lỗi Giải Mã';
+        }
     }
 }
 

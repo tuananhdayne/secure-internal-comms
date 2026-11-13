@@ -424,7 +424,7 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
         "title": title,
         "description": description,
         "created_bucket": case.created_bucket.strftime("%Y-%m-%d %H:00:00 (UTC)"),
-        "evidences": [{"id": e.id, "file_url": e.file_url, "mime_type": e.mime_type} for e in case.evidences],
+        "evidences": [{"id": e.id, "file_url": e.file_url, "mime_type": e.mime_type, "file_sha256_hash": e.file_sha256_hash} for e in case.evidences],
         "messages": messages
     })
 

@@ -43,6 +43,8 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
         const val COL_SIGNATURE = "unblinded_signature"
         const val COL_STATUS = "status"
         const val COL_CREATED_AT = "created_at"
+        const val COL_LAST_MESSAGE_COUNT = "last_message_count"
+        const val COL_HAS_UNREAD = "has_unread"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -55,15 +57,25 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
                 $COL_PUB_KEY TEXT NOT NULL,
                 $COL_SIGNATURE TEXT NOT NULL,
                 $COL_STATUS TEXT NOT NULL,
-                $COL_CREATED_AT TEXT NOT NULL
+                $COL_CREATED_AT TEXT NOT NULL,
+                $COL_LAST_MESSAGE_COUNT INTEGER NOT NULL DEFAULT 0,
+                $COL_HAS_UNREAD INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent()
         db.execSQL(createSql)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_CASES")
-        onCreate(db)
+        ensureColumns(db)
+    }
+
+    private fun ensureColumns(db: SQLiteDatabase) {
+        try {
+            db.execSQL("ALTER TABLE $TABLE_CASES ADD COLUMN $COL_LAST_MESSAGE_COUNT INTEGER NOT NULL DEFAULT 0")
+        } catch (_: Exception) {}
+        try {
+            db.execSQL("ALTER TABLE $TABLE_CASES ADD COLUMN $COL_HAS_UNREAD INTEGER NOT NULL DEFAULT 0")
+        } catch (_: Exception) {}
     }
 
     data class VaultCaseItem(
@@ -74,7 +86,9 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
         val casePublicKeyHex: String,
         val unblindedSignature: String,
         val status: String,
-        val createdAt: String
+        val createdAt: String,
+        val lastMessageCount: Int = 0,
+        val hasUnread: Boolean = false
     )
 
     /**
@@ -82,6 +96,7 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
      */
     fun saveCase(passphrase: String, item: VaultCaseItem) {
         val db = getWritableDatabase(passphrase)
+        ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_TOKEN, item.caseToken)
             put(COL_CATEGORY, item.category)
@@ -91,6 +106,8 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
             put(COL_SIGNATURE, item.unblindedSignature)
             put(COL_STATUS, item.status)
             put(COL_CREATED_AT, item.createdAt)
+            put(COL_LAST_MESSAGE_COUNT, item.lastMessageCount)
+            put(COL_HAS_UNREAD, if (item.hasUnread) 1 else 0)
         }
         db.insertWithOnConflict(TABLE_CASES, null, values, SQLiteDatabase.CONFLICT_REPLACE)
         db.close()
@@ -102,6 +119,7 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     fun getAllCases(passphrase: String): List<VaultCaseItem> {
         val list = mutableListOf<VaultCaseItem>()
         val db = getReadableDatabase(passphrase)
+        ensureColumns(db)
         val cursor = db.query(TABLE_CASES, null, null, null, null, null, "$COL_CREATED_AT DESC")
 
         cursor.use { c ->
@@ -113,8 +131,13 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
             val idxSig = c.getColumnIndexOrThrow(COL_SIGNATURE)
             val idxStat = c.getColumnIndexOrThrow(COL_STATUS)
             val idxCreated = c.getColumnIndexOrThrow(COL_CREATED_AT)
+            val idxMsgCount = c.getColumnIndex(COL_LAST_MESSAGE_COUNT)
+            val idxUnread = c.getColumnIndex(COL_HAS_UNREAD)
 
             while (c.moveToNext()) {
+                val lastMsgCount = if (idxMsgCount != -1) c.getInt(idxMsgCount) else 0
+                val hasUnread = if (idxUnread != -1) (c.getInt(idxUnread) == 1) else false
+
                 list.add(
                     VaultCaseItem(
                         caseToken = c.getString(idxToken),
@@ -124,7 +147,9 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
                         casePublicKeyHex = c.getString(idxPub),
                         unblindedSignature = c.getString(idxSig),
                         status = c.getString(idxStat),
-                        createdAt = c.getString(idxCreated)
+                        createdAt = c.getString(idxCreated),
+                        lastMessageCount = lastMsgCount,
+                        hasUnread = hasUnread
                     )
                 )
             }
@@ -138,11 +163,68 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
      */
     fun updateCaseStatus(passphrase: String, caseToken: String, newStatus: String) {
         val db = getWritableDatabase(passphrase)
+        ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_STATUS, newStatus)
         }
         db.update(TABLE_CASES, values, "$COL_TOKEN = ?", arrayOf(caseToken))
         db.close()
+    }
+
+    /**
+     * Đánh dấu hồ sơ đã đọc và cập nhật số lượng tin nhắn hiện tại.
+     */
+    fun markCaseAsRead(passphrase: String, caseToken: String, currentMessageCount: Int) {
+        val db = getWritableDatabase(passphrase)
+        ensureColumns(db)
+        val values = ContentValues().apply {
+            put(COL_HAS_UNREAD, 0)
+            put(COL_LAST_MESSAGE_COUNT, currentMessageCount)
+        }
+        db.update(TABLE_CASES, values, "$COL_TOKEN = ?", arrayOf(caseToken))
+        db.close()
+    }
+
+    /**
+     * Đồng bộ hồ sơ khi có cập nhật mới từ Ban Thanh tra.
+     */
+    fun updateCaseSync(
+        passphrase: String,
+        caseToken: String,
+        newStatus: String,
+        newMessageCount: Int,
+        hasNewUpdate: Boolean
+    ) {
+        val db = getWritableDatabase(passphrase)
+        ensureColumns(db)
+        val values = ContentValues().apply {
+            put(COL_STATUS, newStatus)
+            put(COL_LAST_MESSAGE_COUNT, newMessageCount)
+            if (hasNewUpdate) {
+                put(COL_HAS_UNREAD, 1)
+            }
+        }
+        db.update(TABLE_CASES, values, "$COL_TOKEN = ?", arrayOf(caseToken))
+        db.close()
+    }
+
+    /**
+     * Đếm tổng số hồ sơ có phản hồi hoặc cập nhật chưa đọc.
+     */
+    fun getUnreadCount(passphrase: String): Int {
+        var count = 0
+        val db = getReadableDatabase(passphrase)
+        ensureColumns(db)
+        try {
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE_CASES WHERE $COL_HAS_UNREAD = 1", null)
+            cursor.use {
+                if (it.moveToFirst()) {
+                    count = it.getInt(0)
+                }
+            }
+        } catch (_: Exception) {}
+        db.close()
+        return count
     }
 
     /**

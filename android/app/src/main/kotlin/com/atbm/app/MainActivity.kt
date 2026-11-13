@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_SECURE
         )
 
+        // Khởi tạo Notification Channel
+        com.atbm.app.domain.notification.CaseNotificationManager.initChannel(this)
+
         setContent {
             AtbmTheme {
                 Surface(

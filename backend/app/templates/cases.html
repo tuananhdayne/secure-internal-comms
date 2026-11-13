@@ -152,6 +152,19 @@
             </div>
         </div>
 
+        <!-- DANH SÁCH TỆP BẰNG CHỨNG ĐA PHƯƠNG TIỆN -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">
+                    📎 Tệp Bằng Chứng Đính Kèm (<span id="modalEvidenceCount">0</span> tệp)
+                </span>
+                <span style="font-size: 0.75rem; color: #10b981;">🛡️ Đã khử toàn bộ EXIF/GPS coordinates</span>
+            </div>
+            <div id="modalEvidenceList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Danh sách bằng chứng được render động bằng JavaScript -->
+            </div>
+        </div>
+
         <!-- CẬP NHẬT TRẠNG THÁI -->
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
             <div>
@@ -212,6 +225,64 @@ async function openCaseModal(caseId) {
 
         document.getElementById('statusForm').action = '/admin/cases/' + caseId + '/status';
         document.getElementById('replyForm').action = '/admin/cases/' + caseId + '/reply';
+
+        // Render danh sách bằng chứng đa phương tiện
+        const evList = document.getElementById('modalEvidenceList');
+        const evCount = document.getElementById('modalEvidenceCount');
+        evList.innerHTML = '';
+        if (data.evidences && data.evidences.length > 0) {
+            evCount.innerText = data.evidences.length;
+            data.evidences.forEach((ev) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.background = '#0f172a';
+                itemDiv.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+                itemDiv.style.borderRadius = '6px';
+                itemDiv.style.padding = '0.75rem 1rem';
+
+                const mime = (ev.mime_type || '').toLowerCase();
+                const url = ev.file_url;
+                const fileName = url.substring(url.lastIndexOf('/') + 1);
+                const hashPreview = ev.file_sha256_hash ? ev.file_sha256_hash.substring(0, 16) + '...' : '';
+
+                let mediaHtml = '';
+                if (mime.startsWith('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.png') || fileName.endsWith('.jpeg')) {
+                    mediaHtml = '<div style="margin-top: 0.5rem;">' +
+                                '<a href="' + url + '" target="_blank" rel="noopener noreferrer" title="Nhấn để xem ảnh phóng to">' +
+                                '<img src="' + url + '" alt="Bằng chứng hình ảnh" style="max-height: 200px; max-width: 100%; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); object-fit: contain; background: #000;" />' +
+                                '</a></div>';
+                } else if (mime.startsWith('audio/') || fileName.endsWith('.mp3') || fileName.endsWith('.wav') || fileName.endsWith('.m4a')) {
+                    mediaHtml = '<div style="margin-top: 0.5rem;">' +
+                                '<audio controls style="width: 100%; border-radius: 6px;" src="' + url + '">' +
+                                'Trình duyệt không hỗ trợ phát âm thanh.' +
+                                '</audio></div>';
+                } else if (mime.startsWith('video/') || fileName.endsWith('.mp4') || fileName.endsWith('.webm')) {
+                    mediaHtml = '<div style="margin-top: 0.5rem;">' +
+                                '<video controls style="max-height: 240px; width: 100%; border-radius: 6px; background: #000;" src="' + url + '">' +
+                                'Trình duyệt không hỗ trợ phát video.' +
+                                '</video></div>';
+                }
+
+                itemDiv.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">' +
+                    '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+                    '<span style="font-size: 1.1rem;">' + (mime.startsWith('image/') ? '📷' : mime.startsWith('audio/') ? '🎙️' : mime.startsWith('video/') ? '🎥' : '📄') + '</span>' +
+                    '<span style="font-size: 0.88rem; font-weight: 600; color: #f1f5f9; word-break: break-all;">' + fileName + '</span>' +
+                    '<span class="badge badge-info" style="font-size: 0.7rem;">' + (mime || 'binary') + '</span>' +
+                    '</div>' +
+                    '<div style="display: flex; align-items: center; gap: 0.75rem;">' +
+                    (hashPreview ? '<span style="font-family: monospace; font-size: 0.72rem; color: #94a3b8;" title="SHA-256: ' + (ev.file_sha256_hash || '') + '">SHA-256: ' + hashPreview + '</span>' : '') +
+                    '<a href="' + url + '" download="' + fileName + '" class="btn-primary" style="padding: 0.3rem 0.65rem; font-size: 0.75rem; text-decoration: none; background: #334155;">' +
+                    '⬇ Tải tệp' +
+                    '</a>' +
+                    '</div>' +
+                    '</div>' +
+                    mediaHtml;
+
+                evList.appendChild(itemDiv);
+            });
+        } else {
+            evCount.innerText = '0';
+            evList.innerHTML = '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.75rem;">Hồ sơ này không đính kèm tệp bằng chứng.</div>';
+        }
 
         const msgList = document.getElementById('modalMessagesList');
         msgList.innerHTML = '';

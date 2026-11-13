@@ -73,6 +73,15 @@ fun VaultScreen(
                     }
                 },
                 actions = {
+                    // Nút làm mới / đồng bộ thông báo
+                    IconButton(onClick = {
+                        scope.launch {
+                            com.atbm.app.domain.notification.CaseNotificationManager.checkCaseUpdates(context)
+                            loadVaultCases()
+                        }
+                    }) {
+                        Text("🔄", fontSize = 18.sp)
+                    }
                     // Nút Kích hoạt Panic PIN Khẩn cấp
                     IconButton(onClick = { showPanicDialog = true }) {
                         Text("🚨", fontSize = 20.sp)
@@ -116,9 +125,17 @@ fun VaultScreen(
                                     scope.launch(Dispatchers.IO) {
                                         try {
                                             val resp = NetworkClient.anonymousApi.getCaseStatus(c.caseToken)
-                                            if (resp.isSuccessful) {
+                                            if (resp.isSuccessful && resp.body() != null) {
+                                                val detail = resp.body()!!
                                                 withContext(Dispatchers.Main) {
-                                                    serverCaseDetail = resp.body()
+                                                    serverCaseDetail = detail
+                                                }
+                                                // Xóa cờ chưa đọc trong SQLCipher local khi người dùng đã mở xem
+                                                val vault = SecureVaultDatabase(context)
+                                                vault.markCaseAsRead("VAULT_MASTER_KEY_SQLCIPHER", c.caseToken, detail.messages.size)
+                                                val updatedList = vault.getAllCases("VAULT_MASTER_KEY_SQLCIPHER")
+                                                withContext(Dispatchers.Main) {
+                                                    casesList = updatedList
                                                 }
                                             }
                                         } catch (_: Exception) {}
@@ -139,17 +156,37 @@ fun VaultScreen(
                                         fontWeight = FontWeight.Bold,
                                         color = AccentCyan
                                     )
-                                    Surface(
-                                        color = AccentGreen.copy(alpha = 0.2f),
-                                        shape = RoundedCornerShape(4.dp)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text(
-                                            text = c.status,
-                                            color = AccentGreen,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
+                                        if (c.hasUnread) {
+                                            Surface(
+                                                color = Color(0xFFEF4444).copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(4.dp),
+                                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444))
+                                            ) {
+                                                Text(
+                                                    text = "🔔 CÓ PHẢN HỒI MỚI",
+                                                    color = Color(0xFFEF4444),
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                        Surface(
+                                            color = AccentGreen.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = c.status,
+                                                color = AccentGreen,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))

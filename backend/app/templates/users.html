@@ -3,78 +3,98 @@
 {% block title %}Quản Lý Nhân Sự - ATBM{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 style="font-size: 1.6rem; font-weight: 700;">Quản Lý Nhân Sự & Tài Khoản Định Danh</h1>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">
-            Cấp quyền, quản lý vai trò và trạng thái hoạt động của nhân viên.
+        <h1 style="font-size: 1.65rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.6rem;">
+            <span>👥</span> Quản Lý Nhân Sự & Tài Khoản Định Danh
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 0.35rem;">
+            Cấp quyền, quản lý vai trò và trạng thái hoạt động của nhân viên nội bộ.
         </p>
     </div>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+    <!-- Danh sách nhân viên -->
     <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Danh sách Nhân viên trong hệ thống ({{ users|length }})</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Mã NV</th>
-                    <th>Họ và tên</th>
-                    <th>Phòng ban</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in users %}
-                <tr>
-                    <td style="font-family: monospace; font-weight: 600; color: var(--accent-cyan);">{{ u.employee_code }}</td>
-                    <td style="font-weight: 500;">{{ u.full_name }}</td>
-                    <td>{{ u.department }}</td>
-                    <td>
-                        {% if u.role == "SYSTEM_ADMIN" %}
-                        <span class="badge badge-danger">ADMIN</span>
-                        {% elif u.role == "COMPLIANCE_OFFICER" %}
-                        <span class="badge badge-warning">OFFICER</span>
-                        {% elif u.role in ("BOARD_DIRECTOR", "BOARD_OF_DIRECTORS") %}
-                        <span class="badge badge-info">DIRECTOR</span>
-                        {% else %}
-                        <span class="badge badge-success">EMPLOYEE</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if u.is_active %}
-                        <span class="badge badge-success">Đang hoạt động</span>
-                        {% else %}
-                        <span class="badge badge-danger">Đã khóa</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if u.role != "SYSTEM_ADMIN" %}
-                        <form method="POST" action="/admin/users/toggle/{{ u.id }}" style="display: inline;">
-                            {% if u.is_active %}
-                            <button type="submit" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">
-                                Khóa
-                            </button>
+        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📋</span> Danh sách Nhân viên trong hệ thống ({{ users|length }})
+        </h3>
+        <div style="overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Họ và tên</th>
+                        <th>Phòng ban</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td style="font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; color: var(--accent-cyan);">
+                            <span style="background: rgba(56, 189, 248, 0.08); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid rgba(56, 189, 248, 0.18);">
+                                {{ u.employee_code }}
+                            </span>
+                        </td>
+                        <td style="font-weight: 500; color: #f1f5f9;">{{ u.full_name }}</td>
+                        <td style="color: var(--text-secondary);">{{ u.department }}</td>
+                        <td>
+                            {% if u.role == "SYSTEM_ADMIN" %}
+                            <span class="badge badge-danger">ADMIN</span>
+                            {% elif u.role == "COMPLIANCE_OFFICER" %}
+                            <span class="badge badge-warning">OFFICER</span>
+                            {% elif u.role in ("BOARD_DIRECTOR", "BOARD_OF_DIRECTORS") %}
+                            <span class="badge badge-info">DIRECTOR</span>
                             {% else %}
-                            <button type="submit" class="btn btn-sm" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
-                                Mở khóa
-                            </button>
+                            <span class="badge badge-success">EMPLOYEE</span>
                             {% endif %}
-                        </form>
-                        {% else %}
-                        <span style="font-size: 0.75rem; color: var(--text-secondary);">(Mặc định)</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge badge-success">
+                                <span style="width: 5px; height: 5px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
+                                Hoạt động
+                            </span>
+                            {% else %}
+                            <span class="badge badge-danger">
+                                <span style="width: 5px; height: 5px; border-radius: 50%; background: #fb7185; display: inline-block;"></span>
+                                Đã khóa
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if u.role != "SYSTEM_ADMIN" %}
+                            <form method="POST" action="/admin/users/toggle/{{ u.id }}" style="display: inline;">
+                                {% if u.is_active %}
+                                <button type="submit" class="btn btn-sm" style="background: rgba(251, 113, 133, 0.12); color: #fb7185; border: 1px solid rgba(251, 113, 133, 0.25);">
+                                    🔒 Khóa
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm" style="background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.25);">
+                                    🔓 Mở khóa
+                                </button>
+                                {% endif %}
+                            </form>
+                            {% else %}
+                            <span style="font-size: 0.78rem; color: var(--text-muted);">(Mặc định)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- Thêm nhân viên mới -->
     <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1.25rem;">Thêm Nhân Viên Mới</h3>
+        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.3rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>➕</span> Thêm Nhân Viên Mới
+        </h3>
         <form method="POST" action="/admin/users/create">
             <div class="form-group">
                 <label class="form-label" for="employee_code">Mã nhân viên</label>
@@ -100,8 +120,8 @@
                 <label class="form-label" for="password">Mật khẩu khởi tạo</label>
                 <input class="form-control" type="password" id="password" name="password" placeholder="Tối thiểu 8 ký tự" required>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-weight: 600;">
-                Tạo Tài Khoản
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                <span>✨</span> Tạo Tài Khoản
             </button>
         </form>
     </div>

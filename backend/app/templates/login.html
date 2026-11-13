@@ -3,42 +3,53 @@
 {% block title %}Đăng nhập Quản trị viên - ATBM{% endblock %}
 
 {% block content %}
-<div style="max-width: 420px; margin: 4rem auto;">
-    <div class="card" style="padding: 2.5rem 2rem; border-top: 4px solid var(--accent-cyan);">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <span class="nav-brand-badge" style="font-size: 0.9rem; padding: 0.35rem 0.8rem;">ATBM SECURITY SUITE</span>
-            <h2 style="margin-top: 1rem; font-size: 1.4rem;">Cổng Quản Trị & Thanh Tra</h2>
-            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
+<div style="max-width: 440px; margin: 4.5rem auto 3rem auto;">
+    <div class="card" style="padding: 2.75rem 2.25rem; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); position: relative; overflow: hidden;">
+        <!-- Dải sáng gradient phía trên card -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--brand-gradient);"></div>
+
+        <div style="text-align: center; margin-bottom: 2.25rem;">
+            <span class="nav-brand-badge" style="font-size: 0.8rem; padding: 0.35rem 0.85rem; border-radius: var(--radius-full);">
+                ATBM SECURITY SUITE
+            </span>
+            <h2 style="margin-top: 1.1rem; font-size: 1.45rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em;">
+                Cổng Quản Trị & Thanh Tra
+            </h2>
+            <p style="color: var(--text-secondary); font-size: 0.86rem; margin-top: 0.45rem; line-height: 1.45;">
                 Dành cho Quản trị viên hệ thống (Admin) & Cán bộ Thanh tra (Officer)
             </p>
         </div>
 
         {% if error %}
-        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-red); color: #fca5a5; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.5rem; text-align: center;">
-            {{ error }}
+        <div style="background: rgba(251, 113, 133, 0.1); border: 1px solid rgba(251, 113, 133, 0.3); color: #fda4af; padding: 0.85rem 1rem; border-radius: var(--radius-md); font-size: 0.86rem; margin-bottom: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <span>⚠️</span> <span>{{ error }}</span>
         </div>
         {% endif %}
 
         <form method="POST" action="/admin/login">
             <div class="form-group">
                 <label class="form-label" for="employee_code">Mã nhân sự (Employee Code)</label>
-                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: AD001 (Admin) hoặc TT001 (Thanh tra)" required autofocus>
+                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: AD001 (Admin) hoặc TT001 (Thanh tra)" required autofocus style="padding: 0.75rem 1rem;">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="password">Mật khẩu</label>
-                <input class="form-control" type="password" id="password" name="password" placeholder="••••••••" required>
+                <input class="form-control" type="password" id="password" name="password" placeholder="••••••••" required style="padding: 0.75rem 1rem;">
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 1rem; font-weight: 600;">
-                Xác thực & Đăng nhập
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem 1rem; margin-top: 0.75rem; font-weight: 600; font-size: 0.95rem; border-radius: var(--radius-md);">
+                <span>🔒</span> Xác thực & Đăng nhập
             </button>
         </form>
 
-        <div style="margin-top: 1.5rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-            💡 <strong>Tài khoản mẫu:</strong><br>
-            • Quản trị viên: <code>AD001</code> / <code>admin123</code><br>
-            • Cán bộ Thanh tra: <code>TT001</code> / <code>officer123</code>
+        <div style="margin-top: 1.75rem; padding: 0.95rem 1.1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6;">
+            <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+                <span>💡</span> Tài khoản kiểm thử nội bộ:
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <div>&bull; Quản trị viên: <code style="color: var(--accent-cyan); background: rgba(56, 189, 248, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">AD001</code> / <code>admin123</code></div>
+                <div>&bull; Cán bộ Thanh tra: <code style="color: #34d399; background: rgba(52, 211, 153, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">TT001</code> / <code>officer123</code></div>
+            </div>
         </div>
     </div>
 </div>

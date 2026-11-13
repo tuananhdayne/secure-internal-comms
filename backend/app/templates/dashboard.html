@@ -3,95 +3,135 @@
 {% block title %}Bảng Điều Khiển Quản Trị - ATBM{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 style="font-size: 1.6rem; font-weight: 700;">Bảng Điều Khiển Quản Trị (Dashboard)</h1>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">
+        <h1 style="font-size: 1.65rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.6rem;">
+            <span>📊</span> Bảng Điều Khiển Quản Trị (Dashboard)
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 0.35rem;">
             Theo dõi tổng quan tài nguyên hệ thống và trạng thái truyền thông nội bộ.
         </p>
     </div>
     <div>
-        <span class="badge badge-success" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-            ● Hệ thống đang hoạt động an toàn
+        <span class="badge badge-success" style="padding: 0.5rem 1rem; font-size: 0.82rem; border-radius: var(--radius-full); box-shadow: 0 2px 10px rgba(52, 211, 153, 0.15);">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
+            Hệ thống đang hoạt động an toàn
         </span>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-    <div class="card" style="border-left: 4px solid var(--accent-blue);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Tổng số Nhân viên</div>
-        <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.5rem; color: #fff;">{{ stats.total_users }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-blue); margin-top: 0.4rem;">Được cấp tài khoản định danh</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    <!-- Nhân viên -->
+    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #818cf8; border-radius: 4px 0 0 4px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tổng số Nhân viên</div>
+            <span style="font-size: 1.1rem; opacity: 0.7;">👥</span>
+        </div>
+        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #f1f5f9; letter-spacing: -0.02em;">{{ stats.total_users }}</div>
+        <div style="font-size: 0.8rem; color: #818cf8; margin-top: 0.35rem;">Được cấp tài khoản định danh</div>
     </div>
 
-    <div class="card" style="border-left: 4px solid var(--accent-green);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Ban Thanh Tra (Officers)</div>
-        <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.5rem; color: #fff;">{{ stats.officer_users }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-green); margin-top: 0.4rem;">Nắm giữ cặp khóa RSA & EC Private</div>
+    <!-- Ban Thanh Tra -->
+    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-green); border-radius: 4px 0 0 4px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ban Thanh Tra (Officers)</div>
+            <span style="font-size: 1.1rem; opacity: 0.7;">⚖️</span>
+        </div>
+        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #34d399; letter-spacing: -0.02em;">{{ stats.officer_users }}</div>
+        <div style="font-size: 0.8rem; color: var(--accent-green); margin-top: 0.35rem;">Nắm giữ cặp khóa RSA & EC Private</div>
     </div>
 
-    <div class="card" style="border-left: 4px solid var(--accent-cyan);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Tin Tức & Thông Báo</div>
-        <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.5rem; color: #fff;">{{ stats.total_posts }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.4rem;">{{ stats.total_comments }} lượt bình luận nội bộ</div>
+    <!-- Tin tức -->
+    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-cyan); border-radius: 4px 0 0 4px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tin Tức & Thông Báo</div>
+            <span style="font-size: 1.1rem; opacity: 0.7;">📰</span>
+        </div>
+        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #38bdf8; letter-spacing: -0.02em;">{{ stats.total_posts }}</div>
+        <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.35rem;">{{ stats.total_comments }} lượt bình luận nội bộ</div>
     </div>
 
-    <div class="card" style="border-left: 4px solid var(--accent-amber);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Hồ Sơ Tố Giác Đang Xử Lý</div>
-        <div style="font-size: 2.2rem; font-weight: 700; margin-top: 0.5rem; color: #fff;">{{ stats.total_cases }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-amber); margin-top: 0.4rem;">Zero-Knowledge: Admin không xem chi tiết</div>
+    <!-- Tố giác -->
+    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-amber); border-radius: 4px 0 0 4px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Hồ Sơ Tố Giác Đang Xử Lý</div>
+            <span style="font-size: 1.1rem; opacity: 0.7;">🛡️</span>
+        </div>
+        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #fbbf24; letter-spacing: -0.02em;">{{ stats.total_cases }}</div>
+        <div style="font-size: 0.8rem; color: var(--accent-amber); margin-top: 0.35rem;">Zero-Knowledge: Admin không xem chi tiết</div>
     </div>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+    <!-- Bảng thông báo -->
     <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Bài viết thông báo mới nhất</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Tiêu đề</th>
-                    <th>Tác giả</th>
-                    <th>Ngày đăng</th>
-                    <th>Ghim</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for post in latest_posts %}
-                <tr>
-                    <td style="font-weight: 500;">{{ post.title }}</td>
-                    <td>{{ post.author.full_name }}</td>
-                    <td>{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>
-                        {% if post.is_pinned %}
-                        <span class="badge badge-warning">Đã ghim</span>
-                        {% else %}
-                        <span style="color: var(--text-secondary); font-size: 0.75rem;">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Chưa có bài viết nào</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📢</span> Bài viết thông báo mới nhất
+        </h3>
+        <div style="overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tiêu đề</th>
+                        <th>Tác giả</th>
+                        <th>Ngày đăng</th>
+                        <th>Ghim</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in latest_posts %}
+                    <tr>
+                        <td style="font-weight: 500; color: #f1f5f9;">{{ post.title }}</td>
+                        <td style="color: var(--text-secondary);">{{ post.author.full_name }}</td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if post.is_pinned %}
+                            <span class="badge badge-warning">📌 Đã ghim</span>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Chưa có bài viết nào</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- Trạng thái mật mã -->
     <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Trạng thái An ninh & Mật mã</h3>
-        <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
-            <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                <div style="color: var(--text-secondary);">Officer Blind Sign Key</div>
-                <div style="font-weight: 600; color: #34d399; margin-top: 0.2rem;">RSA-2048 (Active)</div>
+        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔐</span> Trạng thái An ninh & Mật mã
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.86rem;">
+            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">Officer Blind Sign Key</div>
+                <div style="font-weight: 600; color: #34d399; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
+                    RSA-2048 (Active)
+                </div>
             </div>
-            <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                <div style="color: var(--text-secondary);">Officer E2EE Chat Key</div>
-                <div style="font-weight: 600; color: #60a5fa; margin-top: 0.2rem;">ECC SECP256R1 (Active)</div>
+            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">Officer E2EE Chat Key</div>
+                <div style="font-weight: 600; color: #38bdf8; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; display: inline-block;"></span>
+                    ECC SECP256R1 (Active)
+                </div>
             </div>
-            <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px;">
-                <div style="color: var(--text-secondary);">Chính sách Quota ký mù</div>
-                <div style="font-weight: 600; color: #fbbf24; margin-top: 0.2rem;">5 lượt / nhân viên / tuần</div>
+            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">Chính sách Quota ký mù</div>
+                <div style="font-weight: 600; color: #fbbf24; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; display: inline-block;"></span>
+                    5 lượt / nhân viên / tuần
+                </div>
             </div>
         </div>
     </div>

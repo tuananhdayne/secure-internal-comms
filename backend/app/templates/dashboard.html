@@ -4,74 +4,104 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-    <div>
-        <h1 style="font-size: 1.65rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.6rem;">
-            <span>📊</span> Bảng Điều Khiển Quản Trị (Dashboard)
-        </h1>
-        <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 0.35rem;">
-            Theo dõi tổng quan tài nguyên hệ thống và trạng thái truyền thông nội bộ.
-        </p>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(99, 102, 241, 0.35); display: flex; align-items: center; justify-content: center; color: var(--accent-primary-light); box-shadow: var(--shadow-glow);">
+            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+            </svg>
+        </div>
+        <div>
+            <h1 style="font-size: 1.65rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em;">
+                Bảng Điều Khiển Quản Trị
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 0.2rem;">
+                Theo dõi tổng quan tài nguyên hệ thống, trạng thái truyền thông và cryptographic keys.
+            </p>
+        </div>
     </div>
     <div>
-        <span class="badge badge-success" style="padding: 0.5rem 1rem; font-size: 0.82rem; border-radius: var(--radius-full); box-shadow: 0 2px 10px rgba(52, 211, 153, 0.15);">
-            <span style="width: 7px; height: 7px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
-            Hệ thống đang hoạt động an toàn
+        <span class="badge badge-success" style="padding: 0.5rem 1.1rem; font-size: 0.82rem; border-radius: var(--radius-full); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);">
+            <span class="pulse-dot" style="background: #10b981;"></span>
+            <span>Hệ thống đang hoạt động an toàn</span>
         </span>
     </div>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
     <!-- Nhân viên -->
-    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+    <div class="card" style="margin-bottom: 0; padding: 1.5rem 1.6rem; position: relative;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #818cf8; border-radius: 4px 0 0 4px;"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tổng số Nhân viên</div>
-            <span style="font-size: 1.1rem; opacity: 0.7;">👥</span>
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Tổng số Nhân viên</div>
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(129, 140, 248, 0.12); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
         </div>
-        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #f1f5f9; letter-spacing: -0.02em;">{{ stats.total_users }}</div>
-        <div style="font-size: 0.8rem; color: #818cf8; margin-top: 0.35rem;">Được cấp tài khoản định danh</div>
+        <div style="font-size: 2.2rem; font-weight: 800; margin-top: 0.5rem; color: #f8fafc; letter-spacing: -0.03em;">{{ stats.total_users }}</div>
+        <div style="font-size: 0.78rem; color: #818cf8; margin-top: 0.25rem;">Được cấp tài khoản định danh</div>
     </div>
 
     <!-- Ban Thanh Tra -->
-    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-green); border-radius: 4px 0 0 4px;"></div>
+    <div class="card" style="margin-bottom: 0; padding: 1.5rem 1.6rem; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-emerald); border-radius: 4px 0 0 4px;"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ban Thanh Tra (Officers)</div>
-            <span style="font-size: 1.1rem; opacity: 0.7;">⚖️</span>
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ban Thanh Tra (Officers)</div>
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald);">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+                </svg>
+            </div>
         </div>
-        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #34d399; letter-spacing: -0.02em;">{{ stats.officer_users }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-green); margin-top: 0.35rem;">Nắm giữ cặp khóa RSA & EC Private</div>
+        <div style="font-size: 2.2rem; font-weight: 800; margin-top: 0.5rem; color: #34d399; letter-spacing: -0.03em;">{{ stats.officer_users }}</div>
+        <div style="font-size: 0.78rem; color: var(--accent-emerald); margin-top: 0.25rem;">Nắm giữ cặp khóa RSA & EC Private</div>
     </div>
 
     <!-- Tin tức -->
-    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+    <div class="card" style="margin-bottom: 0; padding: 1.5rem 1.6rem; position: relative;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-cyan); border-radius: 4px 0 0 4px;"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tin Tức & Thông Báo</div>
-            <span style="font-size: 1.1rem; opacity: 0.7;">📰</span>
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Tin Tức & Thông Báo</div>
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(56, 189, 248, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan);">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
+                </svg>
+            </div>
         </div>
-        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #38bdf8; letter-spacing: -0.02em;">{{ stats.total_posts }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.35rem;">{{ stats.total_comments }} lượt bình luận nội bộ</div>
+        <div style="font-size: 2.2rem; font-weight: 800; margin-top: 0.5rem; color: #38bdf8; letter-spacing: -0.03em;">{{ stats.total_posts }}</div>
+        <div style="font-size: 0.78rem; color: var(--accent-cyan); margin-top: 0.25rem;">{{ stats.total_comments }} lượt bình luận nội bộ</div>
     </div>
 
     <!-- Tố giác -->
-    <div class="card" style="margin-bottom: 0; padding: 1.4rem 1.6rem; position: relative; overflow: hidden;">
+    <div class="card" style="margin-bottom: 0; padding: 1.5rem 1.6rem; position: relative;">
         <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-amber); border-radius: 4px 0 0 4px;"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Hồ Sơ Tố Giác Đang Xử Lý</div>
-            <span style="font-size: 1.1rem; opacity: 0.7;">🛡️</span>
+            <div style="color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Hồ Sơ Tố Giác Đang Xử Lý</div>
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(245, 158, 11, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-amber);">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
         </div>
-        <div style="font-size: 2.1rem; font-weight: 700; margin-top: 0.4rem; color: #fbbf24; letter-spacing: -0.02em;">{{ stats.total_cases }}</div>
-        <div style="font-size: 0.8rem; color: var(--accent-amber); margin-top: 0.35rem;">Zero-Knowledge: Admin không xem chi tiết</div>
+        <div style="font-size: 2.2rem; font-weight: 800; margin-top: 0.5rem; color: #fbbf24; letter-spacing: -0.03em;">{{ stats.total_cases }}</div>
+        <div style="font-size: 0.78rem; color: var(--accent-amber); margin-top: 0.25rem;">Zero-Knowledge: Phân tầng bảo mật</div>
     </div>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
     <!-- Bảng thông báo -->
     <div class="card">
-        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span>📢</span> Bài viết thông báo mới nhất
-        </h3>
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem;">
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-primary-light);">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
+                </svg>
+            </div>
+            <h3 style="font-size: 1.12rem; font-weight: 700; color: #f8fafc;">
+                Bài viết thông báo mới nhất
+            </h3>
+        </div>
         <div style="overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
             <table>
                 <thead>
@@ -85,12 +115,17 @@
                 <tbody>
                     {% for post in latest_posts %}
                     <tr>
-                        <td style="font-weight: 500; color: #f1f5f9;">{{ post.title }}</td>
+                        <td style="font-weight: 600; color: #f8fafc;">{{ post.title }}</td>
                         <td style="color: var(--text-secondary);">{{ post.author.full_name }}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                         <td>
                             {% if post.is_pinned %}
-                            <span class="badge badge-warning">📌 Đã ghim</span>
+                            <span class="badge badge-warning">
+                                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+                                </svg>
+                                <span>Đã ghim</span>
+                            </span>
                             {% else %}
                             <span style="color: var(--text-muted); font-size: 0.75rem;">-</span>
                             {% endif %}
@@ -98,7 +133,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Chưa có bài viết nào</td>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">Chưa có bài viết nào</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -108,29 +143,36 @@
 
     <!-- Trạng thái mật mã -->
     <div class="card">
-        <h3 style="font-size: 1.12rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span>🔐</span> Trạng thái An ninh & Mật mã
-        </h3>
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem;">
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(56, 189, 248, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan);">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+            </div>
+            <h3 style="font-size: 1.12rem; font-weight: 700; color: #f8fafc;">
+                Trạng thái An ninh & Mật mã
+            </h3>
+        </div>
         <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.86rem;">
-            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                <div style="color: var(--text-secondary); font-size: 0.8rem;">Officer Blind Sign Key</div>
-                <div style="font-weight: 600; color: #34d399; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
-                    RSA-2048 (Active)
+            <div style="padding: 0.95rem 1.1rem; background: rgba(12, 18, 32, 0.7); border: 1px solid var(--border-card); border-radius: var(--radius-md); transition: all 0.2s ease;">
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">Officer Blind Sign Key</div>
+                <div style="font-weight: 700; color: #34d399; margin-top: 0.3rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="pulse-dot" style="background: #10b981;"></span>
+                    <span>RSA-2048 (Active)</span>
                 </div>
             </div>
-            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                <div style="color: var(--text-secondary); font-size: 0.8rem;">Officer E2EE Chat Key</div>
-                <div style="font-weight: 600; color: #38bdf8; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; display: inline-block;"></span>
-                    ECC SECP256R1 (Active)
+            <div style="padding: 0.95rem 1.1rem; background: rgba(12, 18, 32, 0.7); border: 1px solid var(--border-card); border-radius: var(--radius-md); transition: all 0.2s ease;">
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">Officer E2EE Chat Key</div>
+                <div style="font-weight: 700; color: #38bdf8; margin-top: 0.3rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="pulse-dot" style="background: #38bdf8;"></span>
+                    <span>ECC SECP256R1 (Active)</span>
                 </div>
             </div>
-            <div style="padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                <div style="color: var(--text-secondary); font-size: 0.8rem;">Chính sách Quota ký mù</div>
-                <div style="font-weight: 600; color: #fbbf24; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; display: inline-block;"></span>
-                    5 lượt / nhân viên / tuần
+            <div style="padding: 0.95rem 1.1rem; background: rgba(12, 18, 32, 0.7); border: 1px solid var(--border-card); border-radius: var(--radius-md); transition: all 0.2s ease;">
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">Chính sách Quota ký mù</div>
+                <div style="font-weight: 700; color: #fbbf24; margin-top: 0.3rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="pulse-dot" style="background: #f59e0b;"></span>
+                    <span>5 lượt / nhân viên / tuần</span>
                 </div>
             </div>
         </div>

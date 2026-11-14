@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.identified import User, Post, Comment
 from app.models.anonymous import WhistleCase, CaseMessage, CaseEvidence
@@ -24,8 +25,8 @@ from app.crypto.ecies import ecies_decrypt, ecies_encrypt
 
 logger = logging.getLogger(__name__)
 
-# Khởi tạo Jinja2 Templates
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+# Khởi tạo Jinja2 Templates trỏ sang thư mục frontend độc lập
+TEMPLATES_DIR = settings.templates_dir
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter(prefix="/admin", tags=["Web Admin Interface"])

@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ROOT_DIR = BASE_DIR.parent
+FRONTEND_DIR = ROOT_DIR / "frontend"
 
 
 class Settings(BaseSettings):
@@ -53,6 +55,16 @@ class Settings(BaseSettings):
         p.mkdir(parents=True, exist_ok=True)
         (p / "evidences").mkdir(parents=True, exist_ok=True)
         (p / "docs").mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def templates_dir(self) -> Path:
+        return FRONTEND_DIR / "templates"
+
+    @property
+    def static_dir(self) -> Path:
+        p = FRONTEND_DIR / "static"
+        p.mkdir(parents=True, exist_ok=True)
         return p
 
 

@@ -69,8 +69,9 @@ async def sanitize_anonymous_request_middleware(request: Request, call_next):
     return response
 
 
-# 3. Mount Static Uploads (Tài liệu nội bộ & Bằng chứng mã hóa)
+# 3. Mount Static Uploads & Frontend Assets
 app.mount("/uploads", StaticFiles(directory=str(settings.uploads_path)), name="uploads")
+app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 
 # 4. Include API Routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth")

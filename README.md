@@ -121,6 +121,9 @@ flowchart TD
 ```text
 atbm/
 ├── README.md                          # Tổng quan dự án, kiến trúc & hướng dẫn khởi chạy
+├── frontend/                          # Phân hệ Giao diện Web (Quản trị viên & Ban Thanh tra)
+│   ├── templates/                     # 6 giao diện Web Jinja2 (Modern Slate & Executive Navy)
+│   └── static/                        # Tài nguyên tĩnh CSS, JS, hình ảnh
 ├── backend/                           # Phân hệ Máy chủ (FastAPI + SQLAlchemy + Cryptography)
 │   ├── .env.example                   # Mẫu cấu hình môi trường chuẩn
 │   ├── requirements.txt               # Danh mục thư viện phụ thuộc Python
@@ -132,8 +135,7 @@ atbm/
 │   │   ├── db/                        # Kết nối CSDL (`session.py`) & nạp dữ liệu mẫu (`seed.py`)
 │   │   ├── models/                    # ORM Models: Cụm 1 (`identified.py`) & Cụm 2 (`anonymous.py`)
 │   │   ├── schemas/                   # Pydantic Schemas xác thực dữ liệu đầu vào
-│   │   ├── api/                       # Điều phối: `deps.py`, `admin_web.py` (SSR) & `v1/` (REST API)
-│   │   └── templates/                 # Giao diện Jinja2 Cổng Quản trị & Thanh tra (Modern Slate)
+│   │   └── api/                       # Điều phối: `deps.py`, `admin_web.py` (SSR) & `v1/` (REST API)
 │   └── tests/                         # Hệ thống kiểm thử phân tầng
 │       ├── whitebox/                  # Kiểm thử Hộp trắng (Toán học Mật mã, ORM, Session, Deps)
 │       ├── blackbox/                  # Kiểm thử Hộp đen (REST API, BVA, Phân lớp tương đương, RBAC)

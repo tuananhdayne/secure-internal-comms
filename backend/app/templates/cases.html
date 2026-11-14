@@ -299,7 +299,8 @@
                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem;">Người tố giác sẽ thấy cập nhật này trong Secure Vault trên ứng dụng di động.</div>
             </div>
             <form id="statusForm" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
-                <select name="new_status" id="modalStatusSelect" class="form-control" style="width: auto; padding: 0.45rem 2.2rem 0.45rem 0.85rem; font-size: 0.84rem;">
+                <label for="modalStatusSelect" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Trạng thái hồ sơ</label>
+                <select name="new_status" id="modalStatusSelect" aria-label="Cập nhật trạng thái thụ lý vụ việc" class="form-control" style="width: auto; padding: 0.45rem 2.2rem 0.45rem 0.85rem; font-size: 0.84rem;">
                     <option value="PENDING">Chờ Thụ Lý</option>
                     <option value="INVESTIGATING">Đang Điều Tra</option>
                     <option value="RESOLVED">Đã Xử Lý Thành Công</option>
@@ -334,7 +335,8 @@
             </div>
 
             <form id="replyForm" method="POST" style="display: flex; gap: 0.65rem;">
-                <input type="text" name="message" class="form-control" placeholder="Gửi tin nhắn phản hồi / yêu cầu bổ sung chứng cứ..." required style="flex: 1;">
+                <label for="modalMessageInput" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Nội dung phản hồi điều tra</label>
+                <input type="text" id="modalMessageInput" name="message" aria-label="Nội dung phản hồi điều tra E2EE" class="form-control" placeholder="Gửi tin nhắn phản hồi / yêu cầu bổ sung chứng cứ..." required style="flex: 1;">
                 <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1.2rem; font-size: 0.86rem; white-space: nowrap;">
                     <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>

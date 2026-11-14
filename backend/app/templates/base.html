@@ -6,105 +6,110 @@
     <title>{% block title %}Cổng Quản Trị An Ninh & Tuân Thủ - ATBM{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Palette Cyber Obsidian & Deep Space */
-            --bg-base: #06090f;
-            --bg-surface: #0b111e;
-            --bg-card: rgba(12, 18, 32, 0.78);
-            --bg-card-hover: rgba(18, 26, 46, 0.9);
-            --bg-glass: rgba(10, 16, 28, 0.75);
-            --bg-input: rgba(8, 13, 24, 0.85);
+            /* Palette: Modern Slate & Executive Navy (Soft, Human, Professional) */
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #fafafa;
+            --bg-input: #ffffff;
+            --bg-muted: #f1f5f9;
 
             /* Typography */
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
             --text-muted: #64748b;
 
-            /* Viền tinh tế & viền phát sáng */
-            --border-subtle: rgba(255, 255, 255, 0.07);
-            --border-card: rgba(99, 102, 241, 0.14);
-            --border-hover: rgba(99, 102, 241, 0.32);
-            --border-glow: rgba(56, 189, 248, 0.4);
+            /* Borders */
+            --border-subtle: #e2e8f0;
+            --border-card: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --border-focus: #2563eb;
 
-            /* Bảng màu điểm nhấn Cyber */
-            --accent-primary: #6366f1;
-            --accent-primary-light: #818cf8;
-            --accent-cyan: #38bdf8;
-            --accent-teal: #14b8a6;
-            --accent-emerald: #10b981;
-            --accent-rose: #f43f5e;
-            --accent-amber: #f59e0b;
+            /* Brand & Accent Colors */
+            --primary: #1e40af;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
 
-            /* Dải màu Gradient */
-            --brand-gradient: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
-            --btn-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #0284c7 100%);
-            --btn-hover-gradient: linear-gradient(135deg, #4338ca 0%, #4f46e5 50%, #0369a1 100%);
-            --card-sheen: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%);
+            --accent-blue: #2563eb;
+            --accent-emerald: #059669;
+            --accent-amber: #d97706;
+            --accent-rose: #dc2626;
 
-            /* Bo góc mềm mại */
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 22px;
+            /* Status Colors */
+            --status-success-bg: #ecfdf5;
+            --status-success-border: #a7f3d0;
+            --status-success-text: #065f46;
+
+            --status-warning-bg: #fffbeb;
+            --status-warning-border: #fde68a;
+            --status-warning-text: #92400e;
+
+            --status-info-bg: #eff6ff;
+            --status-info-border: #bfdbfe;
+            --status-info-text: #1e40af;
+
+            --status-danger-bg: #fef2f2;
+            --status-danger-border: #fecaca;
+            --status-danger-text: #991b1b;
+
+            /* Radii */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
             --radius-full: 9999px;
 
-            /* Đổ bóng đa tầng */
-            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
-            --shadow-md: 0 10px 30px -5px rgba(0, 0, 0, 0.55);
-            --shadow-lg: 0 20px 45px -8px rgba(0, 0, 0, 0.7);
-            --shadow-glow: 0 0 25px -4px rgba(99, 102, 241, 0.35);
-            --shadow-cyan-glow: 0 0 25px -4px rgba(56, 189, 248, 0.3);
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+            --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         code, .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
 
-        /* Thanh cuộn hiện đại */
+        /* Scrollbar */
         *::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
         }
         *::-webkit-scrollbar-track {
-            background: rgba(6, 9, 15, 0.6);
+            background: #f1f5f9;
         }
         *::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.22);
+            background: #cbd5e1;
             border-radius: var(--radius-full);
-            transition: background 0.2s ease;
         }
         *::-webkit-scrollbar-thumb:hover {
-            background: rgba(99, 102, 241, 0.45);
+            background: #94a3b8;
         }
 
         body {
             background-color: var(--bg-base);
-            background-image: 
-                radial-gradient(circle at 18% 5%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 82% 95%, rgba(14, 165, 233, 0.06) 0%, transparent 45%),
-                radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.03) 0%, transparent 60%);
-            background-attachment: fixed;
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            line-height: 1.55;
+            line-height: 1.5;
             position: relative;
-            overflow-x: hidden;
         }
 
-        /* SVG Icon styling */
+        /* SVG Icons */
         .icon {
             width: 1.15rem;
             height: 1.15rem;
@@ -119,102 +124,63 @@
             stroke-width: 2;
         }
         .icon-lg {
-            width: 1.4rem;
-            height: 1.4rem;
+            width: 1.35rem;
+            height: 1.35rem;
             stroke-width: 2;
         }
 
-        /* Pulse Dot Animation */
-        .pulse-dot {
+        /* Status Dot */
+        .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             display: inline-block;
-            position: relative;
-        }
-        .pulse-dot::after {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            border-radius: 50%;
-            background: inherit;
-            animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulseRing {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.9); opacity: 0; }
+            flex-shrink: 0;
         }
 
-        /* Keyframes */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes modalEnter {
-            from { opacity: 0; transform: scale(0.95) translateY(14px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        @keyframes shimmerSweep {
-            0% { transform: translateX(-150%) skewX(-20deg); }
-            100% { transform: translateX(250%) skewX(-20deg); }
-        }
-
-        /* Navbar Glassmorphism */
+        /* Navbar */
         .navbar {
-            background: rgba(8, 12, 22, 0.82);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: #ffffff;
             border-bottom: 1px solid var(--border-subtle);
-            padding: 0.85rem 2.25rem;
+            padding: 0.75rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
-            animation: fadeIn 0.3s ease-out;
+            box-shadow: var(--shadow-sm);
         }
 
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.75rem;
             text-decoration: none;
             color: var(--text-primary);
             font-weight: 700;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             letter-spacing: -0.01em;
-            transition: all 0.25s ease;
             white-space: nowrap;
             flex-shrink: 0;
         }
-        .nav-brand:hover {
-            transform: translateY(-1px);
-        }
 
         .nav-brand-logo {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: var(--radius-sm);
-            background: var(--brand-gradient);
+            background: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #06090f;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
-            transition: transform 0.3s ease;
-        }
-        .nav-brand:hover .nav-brand-logo {
-            transform: rotate(5deg) scale(1.05);
+            color: #ffffff;
+            box-shadow: 0 1px 3px rgba(30, 64, 175, 0.3);
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.5rem;
         }
 
         .nav-link {
@@ -222,181 +188,162 @@
             text-decoration: none;
             font-weight: 500;
             font-size: 0.88rem;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 0.45rem 0.95rem;
-            border-radius: var(--radius-md);
+            transition: all 0.15s ease;
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--radius-sm);
             border: 1px solid transparent;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            position: relative;
         }
 
         .nav-link:hover {
             color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--border-subtle);
-            transform: translateY(-1px);
+            background: #f1f5f9;
         }
 
         .nav-link.active {
-            color: #ffffff;
-            background: rgba(99, 102, 241, 0.15);
-            border-color: rgba(99, 102, 241, 0.35);
+            color: var(--primary);
+            background: var(--primary-light);
+            border-color: var(--primary-border);
             font-weight: 600;
-            box-shadow: 0 0 16px -2px rgba(99, 102, 241, 0.3);
         }
 
         .nav-user {
             white-space: nowrap;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
             color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.35rem 0.75rem;
-            background: rgba(255, 255, 255, 0.03);
+            background: #f8fafc;
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-full);
+            font-weight: 500;
         }
 
         .btn-logout {
-            color: var(--accent-rose);
-            background: rgba(244, 63, 94, 0.08);
-            border: 1px solid rgba(244, 63, 94, 0.25);
-            padding: 0.42rem 0.95rem;
-            border-radius: var(--radius-md);
+            color: var(--status-danger-text);
+            background: var(--status-danger-bg);
+            border: 1px solid var(--status-danger-border);
+            padding: 0.4rem 0.85rem;
+            border-radius: var(--radius-sm);
             text-decoration: none;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 600;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
+            gap: 0.4rem;
             white-space: nowrap;
             flex-shrink: 0;
         }
 
         .btn-logout:hover {
-            background-color: rgba(244, 63, 94, 0.2);
-            border-color: rgba(244, 63, 94, 0.45);
-            color: #fda4af;
-            transform: translateY(-1.5px);
-            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.25);
+            background-color: #fee2e2;
+            border-color: #fca5a5;
+            color: #991b1b;
         }
 
         .container {
             max-width: 1240px;
-            margin: 2rem auto 4.5rem auto;
-            padding: 0 1.75rem;
+            margin: 2rem auto 4rem auto;
+            padding: 0 1.5rem;
             flex: 1;
             width: 100%;
-            animation: fadeIn 0.35s ease-out;
         }
 
         /* Banner thông báo quyền hạn */
         .alert-security {
-            background: rgba(12, 18, 32, 0.75);
-            backdrop-filter: blur(14px);
+            background: #ffffff;
             border: 1px solid var(--border-card);
-            border-left: 4px solid var(--accent-primary);
-            padding: 1.15rem 1.4rem;
+            border-left: 4px solid var(--primary);
+            padding: 1rem 1.25rem;
             border-radius: var(--radius-md);
-            margin-bottom: 2rem;
+            margin-bottom: 1.75rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.85rem;
             font-size: 0.88rem;
-            line-height: 1.55;
-            color: #cbd5e1;
+            line-height: 1.5;
+            color: var(--text-secondary);
             box-shadow: var(--shadow-sm);
-            transition: all 0.25s ease;
-        }
-        .alert-security:hover {
-            border-color: var(--border-hover);
-            transform: translateY(-1px);
         }
 
-        /* Card bo góc mềm mại, hiệu ứng hover nhấc nhẹ */
+        /* Cards */
         .card {
             background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--border-card);
-            border-radius: var(--radius-lg);
-            padding: 1.6rem 1.75rem;
-            margin-bottom: 1.6rem;
-            box-shadow: var(--shadow-md);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            overflow: hidden;
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .card:hover {
             border-color: var(--border-hover);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg), 0 0 25px -5px rgba(99, 102, 241, 0.15);
         }
 
-        /* Badges dạng viên thuốc pill hiện đại */
+        /* Badges */
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
-            padding: 0.32rem 0.8rem;
+            gap: 0.35rem;
+            padding: 0.28rem 0.65rem;
             border-radius: var(--radius-full);
-            font-size: 0.76rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.01em;
             border: 1px solid transparent;
             white-space: nowrap;
-            transition: all 0.2s ease;
         }
 
         .badge-success {
-            background: rgba(16, 185, 129, 0.12);
-            color: #34d399;
-            border-color: rgba(16, 185, 129, 0.28);
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+            border-color: var(--status-success-border);
         }
         .badge-danger {
-            background: rgba(244, 63, 94, 0.12);
-            color: #fb7185;
-            border-color: rgba(244, 63, 94, 0.28);
+            background: var(--status-danger-bg);
+            color: var(--status-danger-text);
+            border-color: var(--status-danger-border);
         }
         .badge-info {
-            background: rgba(56, 189, 248, 0.12);
-            color: #38bdf8;
-            border-color: rgba(56, 189, 248, 0.28);
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            border-color: var(--status-info-border);
         }
         .badge-warning {
-            background: rgba(245, 158, 11, 0.12);
-            color: #fbbf24;
-            border-color: rgba(245, 158, 11, 0.28);
+            background: var(--status-warning-bg);
+            color: var(--status-warning-text);
+            border-color: var(--status-warning-border);
         }
 
-        /* Bảng hiển thị */
+        /* Tables */
         table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
         }
 
         th, td {
-            padding: 0.95rem 1.15rem;
+            padding: 0.85rem 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-subtle);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
 
         th {
-            background: rgba(255, 255, 255, 0.02);
+            background: #f8fafc;
             color: var(--text-secondary);
             font-weight: 600;
             font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.05em;
         }
 
         th:first-child {
@@ -411,98 +358,95 @@
         }
 
         tbody tr {
-            transition: all 0.2s ease;
+            transition: background-color 0.12s ease;
         }
 
         tbody tr:hover td {
-            background-color: rgba(99, 102, 241, 0.04);
+            background-color: #f8fafc;
         }
 
-        /* Nút bấm với Micro-interactions & Ánh sáng Shimmer */
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.58rem 1.25rem;
-            border-radius: var(--radius-md);
+            gap: 0.45rem;
+            padding: 0.52rem 1.15rem;
+            border-radius: var(--radius-sm);
             font-weight: 600;
-            font-size: 0.88rem;
+            font-size: 0.86rem;
             text-decoration: none;
             cursor: pointer;
             border: 1px solid transparent;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.15s ease;
             line-height: 1.25;
-            position: relative;
-            overflow: hidden;
+            white-space: nowrap;
         }
 
         .btn-primary {
-            background: var(--btn-gradient);
+            background: var(--primary);
             color: #ffffff;
-            box-shadow: 0 4px 18px rgba(79, 70, 229, 0.35);
-        }
-
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 40%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: translateX(-150%) skewX(-20deg);
-        }
-
-        .btn-primary:hover::after {
-            animation: shimmerSweep 0.75s ease-out;
+            border-color: #1e3a8a;
+            box-shadow: 0 1px 2px rgba(30, 64, 175, 0.2);
         }
 
         .btn-primary:hover {
-            background: var(--btn-hover-gradient);
-            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.5), 0 0 15px rgba(56, 189, 248, 0.3);
-            transform: translateY(-2px);
+            background: var(--primary-hover);
+            border-color: #1d4ed8;
+            box-shadow: 0 2px 4px rgba(30, 64, 175, 0.25);
+            transform: translateY(-1px);
         }
 
         .btn-primary:active {
-            transform: scale(0.97);
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: var(--text-primary);
+            border-color: var(--border-subtle);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: var(--border-hover);
         }
 
         .btn-sm {
-            padding: 0.38rem 0.85rem;
+            padding: 0.35rem 0.75rem;
             font-size: 0.78rem;
             border-radius: var(--radius-sm);
         }
 
-        /* Form Inputs & Selects */
+        /* Form Controls */
         .form-group {
-            margin-bottom: 1.35rem;
+            margin-bottom: 1.25rem;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.45rem;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: var(--text-primary);
+            font-size: 0.84rem;
+            font-weight: 600;
         }
 
         .form-control {
             width: 100%;
-            padding: 0.72rem 1rem;
+            padding: 0.65rem 0.85rem;
             background-color: var(--bg-input);
-            border: 1px solid var(--border-card);
-            border-radius: var(--radius-md);
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
             color: var(--text-primary);
-            font-size: 0.92rem;
-            transition: all 0.22s ease;
+            font-size: 0.88rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: var(--accent-primary-light);
-            background-color: rgba(14, 20, 36, 0.95);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 0 18px rgba(99, 102, 241, 0.2);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
         }
 
         .form-control::placeholder {
@@ -512,17 +456,12 @@
         select.form-control {
             appearance: none;
             -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23818cf8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 0.85rem center;
-            background-size: 1.1rem;
-            padding-right: 2.5rem;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.25rem;
             cursor: pointer;
-        }
-
-        select.form-control:focus {
-            border-color: var(--accent-primary-light);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 0 18px rgba(99, 102, 241, 0.2);
         }
 
         /* Responsive */
@@ -536,7 +475,7 @@
                 display: none;
             }
             .nav-links {
-                gap: 0.5rem;
+                gap: 0.4rem;
                 overflow-x: auto;
                 max-width: 100%;
                 padding-bottom: 4px;
@@ -544,24 +483,24 @@
             }
             .nav-link {
                 padding: 0.35rem 0.65rem;
-                font-size: 0.84rem;
+                font-size: 0.82rem;
             }
             .container {
                 padding: 0 1rem;
                 margin-top: 1.25rem;
-                margin-bottom: 3.5rem;
+                margin-bottom: 3rem;
             }
         }
 
         /* Footer */
         footer {
             border-top: 1px solid var(--border-subtle);
-            padding: 1.75rem 2rem;
+            padding: 1.5rem 2rem;
             text-align: center;
             color: var(--text-muted);
             font-size: 0.82rem;
-            background: rgba(6, 9, 15, 0.75);
-            backdrop-filter: blur(10px);
+            background: #ffffff;
+            margin-top: auto;
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -571,11 +510,11 @@
     <nav class="navbar">
         <a href="/admin/dashboard" class="nav-brand">
             <div class="nav-brand-logo">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
             </div>
-            <span class="nav-brand-title" style="letter-spacing: -0.02em;">ATBM Security Suite</span>
+            <span class="nav-brand-title" style="letter-spacing: -0.01em;">ATBM Security Suite</span>
         </a>
         <div class="nav-links">
             {% set path = request.url.path %}
@@ -618,9 +557,9 @@
                 <span>Truyền thông</span>
             </a>
             {% endif %}
-            <span style="color: var(--border-subtle)">|</span>
+            <span style="color: var(--border-subtle); margin: 0 0.25rem;">|</span>
             <span class="nav-user">
-                <span class="pulse-dot" style="background: #10b981;"></span>
+                <span class="status-dot" style="background: var(--accent-emerald);"></span>
                 <span>{{ current_user.full_name }}</span>
                 <span style="color: var(--text-muted); font-size: 0.78rem;">({{ current_user.role }})</span>
             </span>
@@ -638,26 +577,26 @@
         {% if current_user %}
             {% if current_user.role == 'COMPLIANCE_OFFICER' %}
             <div class="alert-security">
-                <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; color: var(--accent-primary-light); flex-shrink: 0;">
-                    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--primary-light); border: 1px solid var(--primary-border); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
                     </svg>
                 </div>
                 <div>
-                    <strong style="color: var(--accent-primary-light); font-weight: 600; letter-spacing: 0.02em;">QUYỀN HẠN THANH TRA (COMPLIANCE OFFICER):</strong> 
-                    <span style="color: #cbd5e1;">Bạn đang đăng nhập với tư cách Cán bộ Thanh tra ({{ current_user.employee_code }}). Bạn có thẩm quyền sử dụng Khóa riêng ECC (Officer Private Key) để giải mã hồ sơ tố giác và trao đổi trực tiếp với người nộp đơn (E2EE Chat).</span>
+                    <strong style="color: var(--primary); font-weight: 600;">QUYỀN HẠN THANH TRA (COMPLIANCE OFFICER):</strong> 
+                    <span style="color: var(--text-secondary);">Bạn đang đăng nhập với tư cách Cán bộ Thanh tra ({{ current_user.employee_code }}). Bạn có thẩm quyền sử dụng Khóa riêng ECC (Officer Private Key) để giải mã hồ sơ tố giác và trao đổi trực tiếp với người nộp đơn (E2EE Chat).</span>
                 </div>
             </div>
             {% else %}
-            <div class="alert-security" style="border-left-color: var(--accent-cyan);">
-                <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan); flex-shrink: 0;">
-                    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <div class="alert-security" style="border-left-color: var(--accent-emerald);">
+                <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--status-success-bg); border: 1px solid var(--status-success-border); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald); flex-shrink: 0;">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                 </div>
                 <div>
-                    <strong style="color: var(--accent-cyan); font-weight: 600; letter-spacing: 0.02em;">QUYỀN HẠN QUẢN TRỊ VIÊN (SYSTEM ADMIN):</strong> 
-                    <span style="color: #cbd5e1;">Tài khoản Quản trị viên chỉ quản lý nhân sự và truyền thông nội bộ. Nội dung hồ sơ tố giác ẩn danh được phân tầng bảo mật cho Ban Thanh tra.</span>
+                    <strong style="color: var(--accent-emerald); font-weight: 600;">QUYỀN HẠN QUẢN TRỊ VIÊN (SYSTEM ADMIN):</strong> 
+                    <span style="color: var(--text-secondary);">Tài khoản Quản trị viên chỉ quản lý nhân sự và truyền thông nội bộ. Nội dung hồ sơ tố giác ẩn danh được phân tầng bảo mật cho Ban Thanh tra.</span>
                 </div>
             </div>
             {% endif %}

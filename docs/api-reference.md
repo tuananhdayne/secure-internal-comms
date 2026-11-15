@@ -1,6 +1,6 @@
 # Tài Liệu Đặc Tả Chi Tiết API (API Reference)
 > **Dự án:** Secure Internal Communications & Whistleblower Engine (ATBM - KMA)  
-> **Base URL:** `http://localhost:8000` (hoặc `http://10.0.2.2:8000` trên Android Emulator)  
+> **Base URL:** `https://chas-unshaped-jacalyn.ngrok-free.dev` (hoặc `http://localhost:8000` trên máy tính phát triển)  
 > **Phiên bản:** v1.0.0  
 
 ---

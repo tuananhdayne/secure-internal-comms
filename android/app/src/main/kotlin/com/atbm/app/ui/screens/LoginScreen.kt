@@ -136,7 +136,7 @@ fun LoginScreen(
                         serverUrl = it
                         NetworkClient.updateBaseUrl(it)
                     },
-                    label = { Text("Server Base URL (LAN / Emulator)") },
+                    label = { Text("Server Base URL (Ngrok / Cloud / LAN)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(

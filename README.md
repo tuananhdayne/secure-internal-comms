@@ -178,10 +178,14 @@ python -m app.db.seed
 
 # 5. Khởi chạy máy chủ FastAPI (Port 8000)
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 6. Mở kết nối Internet từ xa qua Ngrok (cho ứng dụng di động 4G/5G)
+ngrok http --url=chas-unshaped-jacalyn.ngrok-free.dev 8000
 ```
 
-* **Cổng Quản trị & Thanh tra Web:** [http://localhost:8000/admin/login](http://localhost:8000/admin/login)
-* **Tài liệu Swagger API Interactive:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Cổng Quản trị & Thanh tra Web (Local):** [http://localhost:8000/admin/login](http://localhost:8000/admin/login)
+* **Cổng Quản trị & Thanh tra Web (Ngrok Online):** [https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login](https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login)
+* **Tài liệu Swagger API Interactive:** [http://localhost:8000/docs](http://localhost:8000/docs) (hoặc [https://chas-unshaped-jacalyn.ngrok-free.dev/docs](https://chas-unshaped-jacalyn.ngrok-free.dev/docs))
 * **Tài liệu Redoc API:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ---

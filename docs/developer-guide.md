@@ -99,8 +99,9 @@ PYTHONPATH=backend ./backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --por
 # Hoặc nếu đang trong thư mục backend và đã kích hoạt virtualenv:
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-- **Cổng Web Portal & Quản Trị Hệ Thống:** `http://localhost:8000/` (hoặc `http://localhost:8000/admin`)
-- **Tài liệu API tương tác (Swagger UI):** `http://localhost:8000/docs`
+- **Cổng Web Portal & Quản Trị Hệ Thống:** `http://localhost:8000/admin` (hoặc qua Ngrok `https://chas-unshaped-jacalyn.ngrok-free.dev/admin`)
+- **Tài liệu API tương tác (Swagger UI):** `http://localhost:8000/docs` (hoặc qua Ngrok `https://chas-unshaped-jacalyn.ngrok-free.dev/docs`)
+- **Lệnh mở Ngrok Tunnel:** `ngrok http --url=chas-unshaped-jacalyn.ngrok-free.dev 8000`
 
 ---
 

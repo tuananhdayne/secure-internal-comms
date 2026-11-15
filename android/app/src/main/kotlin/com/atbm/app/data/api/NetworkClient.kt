@@ -11,11 +11,10 @@ import java.util.concurrent.TimeUnit
  */
 object NetworkClient {
 
-    // 127.0.0.1:8000 kết hợp adb reverse tcp:8000 tcp:8000 cho thiết bị thật qua USB
-    // hoặc 10.0.2.2:8000 đối với Android Emulator
-    private const val DEFAULT_EMULATOR_URL = "http://127.0.0.1:8000/"
+    // Ngrok static domain cấu hình sẵn cho kết nối Internet / 4G / Wi-Fi từ xa
+    private const val DEFAULT_NGROK_URL = "https://chas-unshaped-jacalyn.ngrok-free.dev/"
     
-    private var currentBaseUrl: String = DEFAULT_EMULATOR_URL
+    private var currentBaseUrl: String = DEFAULT_NGROK_URL
     private var retrofit: Retrofit? = null
 
     var identifiedApi: IdentifiedApi
@@ -48,6 +47,12 @@ object NetworkClient {
         }
 
         val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("ngrok-skip-browser-warning", "true")
+                    .build()
+                chain.proceed(request)
+            }
             .addInterceptor(logging)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)

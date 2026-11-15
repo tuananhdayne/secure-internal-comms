@@ -32,8 +32,10 @@
    - **Mã nhân viên:** Nhập mã định danh được cấp (VD: `NV001`).
    - **Mật khẩu:** Nhập mật khẩu tài khoản (VD: `employee123`).
    - **Server Base URL:** 
-     - Nếu chạy trên Android Emulator: Giữ nguyên `http://10.0.2.2:8000/`.
-     - Nếu chạy trên điện thoại thật kết nối Wi-Fi LAN: Nhập địa chỉ IP máy chủ của bạn (VD: `http://192.168.1.15:8000/`).
+     - **Kết nối Ngrok (Mặc định - Cực tiện lợi, hỗ trợ 4G/5G từ xa):** Ứng dụng đã đặt sẵn `https://chas-unshaped-jacalyn.ngrok-free.dev/`. Chỉ cần trên máy tính chạy `ngrok http --url=chas-unshaped-jacalyn.ngrok-free.dev 8000`.
+     - **Nếu chạy cáp USB:** Chạy `adb reverse tcp:8000 tcp:8000` trên máy tính và trỏ về `http://127.0.0.1:8000/`.
+     - **Nếu chạy trên Android Emulator:** Trỏ về `http://10.0.2.2:8000/`.
+     - **Nếu chạy Wi-Fi LAN:** Nhập địa chỉ IP máy chủ của bạn (VD: `http://192.168.1.15:8000/`).
 3. Nhấn nút **"Đăng nhập An toàn"**.
 
 > [!NOTE]

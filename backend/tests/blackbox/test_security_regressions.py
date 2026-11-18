@@ -81,7 +81,8 @@ def test_malicious_filename_and_mime_are_neutralized(client: TestClient):
     )
     assert resp.status_code == 201, resp.text
     ev = _evidence_for(token)
-    stored_name = ev.file_url.rsplit("/", 1)[-1]
+    from app.services.evidence import read_name
+    stored_name = read_name(ev.file_url)
     for ch in '<>"\' ()=':
         assert ch not in stored_name
     assert stored_name.endswith(".png")
@@ -93,7 +94,8 @@ def test_valid_mime_type_is_preserved(client: TestClient):
     assert resp.status_code == 201, resp.text
     ev = _evidence_for(token)
     assert ev.mime_type == "audio/mpeg"
-    assert ev.file_url.endswith("_ghi_am_hien_truong.mp3")
+    from app.services.evidence import read_name
+    assert read_name(ev.file_url) == "ghi_am_hien_truong.mp3"
 
 
 def test_uploaded_html_is_served_sandboxed(client: TestClient):
@@ -101,10 +103,44 @@ def test_uploaded_html_is_served_sandboxed(client: TestClient):
                                content=b"<script>alert(document.cookie)</script>")
     assert resp.status_code == 201, resp.text
     ev = _evidence_for(token)
-    served = client.get(ev.file_url)
+    # Không còn đường tải tĩnh công khai
+    assert client.get("/uploads/evidences/" + ev.file_url.split(":", 1)[1]).status_code == 404
+    # Chưa đăng nhập -> không tải được
+    client.cookies.clear()
+    assert client.get(f"/admin/evidence/{ev.id}").status_code == 401
+    # Thanh tra tải được; HTML luôn là tệp tải về, kèm sandbox + nosniff
+    _login_web(client, "TT_EVID", "OfficerPass123!")
+    served = client.get(f"/admin/evidence/{ev.id}")
     assert served.status_code == 200
+    assert served.content == b"<script>alert(document.cookie)</script>"
     assert served.headers.get("x-content-type-options") == "nosniff"
     assert "sandbox" in served.headers.get("content-security-policy", "")
+    assert served.headers["content-disposition"].startswith("attachment")
+    assert "text/html" not in served.headers["content-type"]
+    client.cookies.clear()
+
+
+def test_evidence_download_requires_case_permission(client: TestClient):
+    """Quản trị / Ban Giám đốc không tải được bằng chứng (tách bạch nhiệm vụ)."""
+    resp, token = _submit_case(client, filename="anh.png", mime="image/png", content=b"\x89PNG fake")
+    assert resp.status_code == 201, resp.text
+    ev = _evidence_for(token)
+    for role in ("SYSTEM_ADMIN", "BOARD_DIRECTOR"):
+        db = SessionLocal()
+        try:
+            u = User(employee_code=f"EV_{role}", full_name=role, department="QA", role=role,
+                     password_hash=get_password_hash("x"), is_active=True)
+            db.add(u); db.commit(); db.refresh(u)
+            tok = create_access_token(subject=str(u.id), role=role)
+        finally:
+            db.close()
+        client.cookies.clear()
+        client.cookies.set("admin_token", tok)
+        assert client.get(f"/admin/evidence/{ev.id}").status_code == 403
+        client.headers["Authorization"] = f"Bearer {tok}"
+        assert client.get(f"/api/v1/officer/evidence/{ev.id}").status_code == 403
+        del client.headers["Authorization"]
+    client.cookies.clear()
 
 
 def _login_web(client: TestClient, code: str, pw: str) -> None:

@@ -1,7 +1,7 @@
 """Điểm khởi tạo FastAPI — đọc file này để nắm toàn bộ app:
 
     Middleware   app/core/middleware.py   request_id, xóa header IP (ẩn danh), log an toàn, header bảo mật
-    Static       /uploads  (bằng chứng, sandbox CSP)   /static  (CSS/JS của Web Admin)
+    Static       /static  (CSS/JS của Web Admin) — bằng chứng KHÔNG phục vụ tĩnh (xem services/evidence.py)
     REST API     /api/v1/auth | posts | compliance       Cụm 1 (định danh, JWT)
                  /api/v1/anonymous                       Cụm 2 (ẩn danh, không JWT)
                  /api/v1/officer                         Cụm 2 (Ban Thanh tra, JWT)
@@ -72,7 +72,8 @@ app.add_middleware(
 app.middleware("http")(app_middleware)
 
 # --- Tệp tĩnh ---
-app.mount("/uploads", StaticFiles(directory=str(settings.uploads_path)), name="uploads")
+# KHÔNG mount /uploads: tệp bằng chứng được mã hóa và chỉ phục vụ qua route có kiểm tra quyền
+# (/admin/evidence/{id}, /api/v1/officer/evidence/{id}).
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 
 # --- REST API v1 ---

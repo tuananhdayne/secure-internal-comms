@@ -108,4 +108,5 @@ def test_get_case_status_and_chat():
     assert status_resp.status_code == 200
     data = status_resp.json()
     assert data["case_token"] == case_token
-    assert len(data["evidences"]) == 1
+    # Tra cứu ẩn danh KHÔNG lộ danh sách / đường dẫn tệp bằng chứng
+    assert data["evidences"] == []

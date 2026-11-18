@@ -24,6 +24,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
+# CÔ LẬP: chạy trên CSDL + thư mục uploads TẠM (đặt trước khi import app vì Settings/engine khởi tạo
+# lúc import). Trước đây script ghi thẳng vào backend/app.db: tạo tài khoản EMP999 trong dữ liệu thật,
+# tiêu lượt gửi tố giác trong tuần và để lại hàng trăm tệp bằng chứng rác trong uploads/.
+_SEC_TMP = Path(tempfile.mkdtemp(prefix="atbm_sec_"))
+os.environ["DATABASE_URL"] = f"sqlite:///{_SEC_TMP / 'security.db'}"
+os.environ["UPLOAD_DIR"] = str(_SEC_TMP / "uploads")
+
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 from fastapi.testclient import TestClient
@@ -480,6 +487,7 @@ def main():
     results.append(("Kịch bản 5: Mô phỏng cơ chế tiêu hủy Panic PIN", test_scenario_5_panic_pin_simulation()))
 
     total_time = (time.time() - start_time) * 1000
+    shutil.rmtree(_SEC_TMP, ignore_errors=True)
 
     print(f"\n{CYAN}{BOLD}================================================================================{RESET}")
     print(f"{CYAN}{BOLD}                          BẢNG TỔNG KẾT KIỂM THỬ BẢO MẬT                       {RESET}")

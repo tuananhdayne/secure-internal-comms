@@ -133,7 +133,7 @@ def get_anonymous_case_status(case_token: str, db: Session = Depends(get_db)) ->
     """Tra cứu trạng thái hồ sơ và lịch sử chat E2EE bằng case_token."""
     case = (
         db.query(WhistleCase)
-        .options(joinedload(WhistleCase.evidences), joinedload(WhistleCase.messages))
+        .options(joinedload(WhistleCase.messages))
         .filter(WhistleCase.case_token == case_token.strip())
         .first()
     )
@@ -151,7 +151,8 @@ def get_anonymous_case_status(case_token: str, db: Session = Depends(get_db)) ->
         category=case.category,
         status=case.status,
         created_bucket=case.created_bucket,
-        evidences=[CaseEvidenceResponse.model_validate(e) for e in case.evidences],
+        # Không trả danh sách / đường dẫn tệp: người cầm mã hồ sơ không cần, và tệp chỉ Thanh tra xem được.
+        evidences=[],
         messages=messages,
     )
 

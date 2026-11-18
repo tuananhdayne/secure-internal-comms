@@ -32,7 +32,7 @@ def _apply_security_headers(request: Request, response) -> None:
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     if request.url.scheme == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
-    if request.url.path.startswith("/uploads/"):
+    if request.url.path.startswith(("/admin/evidence/", f"{settings.API_V1_STR}/officer/evidence/")):
         # Tệp bằng chứng là nội dung không tin cậy: mở trực tiếp cũng không chạy được script.
         response.headers["Content-Security-Policy"] = UPLOADS_CSP
 

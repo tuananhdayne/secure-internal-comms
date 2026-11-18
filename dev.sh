@@ -33,7 +33,7 @@ case "$cmd" in
     need_venv; cd "$BACKEND" && "$PY" -m pytest -q "$@" ;;
   test-fast)      # pytest dừng ở lỗi đầu tiên, in chi tiết
     need_venv; cd "$BACKEND" && "$PY" -m pytest -x -vv --tb=short "$@" ;;
-  test-security)  # 5 kịch bản bảo mật cốt lõi (không cần server; ghi hồ sơ thử vào app.db)
+  test-security)  # 5 kịch bản bảo mật cốt lõi (không cần server; dùng CSDL tạm, không đụng app.db)
     need_venv; cd "$BACKEND" && "$PY" run_security_tests.py ;;
   reset-db)       # XÓA app.db + tệp bằng chứng rồi nạp lại dữ liệu mẫu (hỏi xác nhận)
     need_venv

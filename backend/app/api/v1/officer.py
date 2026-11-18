@@ -11,11 +11,13 @@ from app.api.deps import require_permission
 from app.core.permissions import Perm
 from app.core.constants import CaseStatus, Role, SenderType
 from app.db.session import get_db
-from app.models.anonymous import CaseMessage, WhistleCase
+from app.models.anonymous import CaseEvidence, CaseMessage, WhistleCase
 from app.models.identified import User
 from app.schemas.anonymous import CaseEvidenceResponse, CaseMessageResponse
 from app.schemas.officer import CaseStatusUpdate, DecryptedCaseResponse, OfficerCaseSummary, OfficerReplyRequest
 from app.services.case_crypto import decrypt_case_payload
+from app.services.evidence import evidence_response, is_placeholder
+from app.core.config import settings
 
 router = APIRouter(tags=["Officer Investigation"])
 officer_only = require_permission(Perm.CASE_MANAGE)
@@ -75,7 +77,11 @@ def decrypt_case_details(
         decrypted_title=plain.title,
         decrypted_description=plain.description,
         created_bucket=case.created_bucket,
-        evidences=[CaseEvidenceResponse.model_validate(e) for e in case.evidences],
+        evidences=[
+            CaseEvidenceResponse(id=e.id, file_url=f"{settings.API_V1_STR}/officer/evidence/{e.id}",
+                                 file_sha256_hash=e.file_sha256_hash, mime_type=e.mime_type)
+            for e in case.evidences if not is_placeholder(e.file_url, e.mime_type)
+        ],
         messages=[CaseMessageResponse.model_validate(m) for m in case.messages],
     )
 
@@ -120,3 +126,20 @@ def reply_to_anonymous_whistleblower(
     db.commit()
     db.refresh(message)
     return CaseMessageResponse.model_validate(message)
+
+
+@router.get("/evidence/{evidence_id}")
+def download_evidence(
+    evidence_id: int,
+    download: int = 0,
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
+):
+    """Tải tệp bằng chứng đã giải mã (chỉ Cán bộ Thanh tra)."""
+    ev = db.query(CaseEvidence).filter(CaseEvidence.id == evidence_id).first()
+    if not ev:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tệp bằng chứng.")
+    try:
+        return evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tệp bằng chứng không khả dụng.")

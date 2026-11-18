@@ -95,14 +95,21 @@ def test_submit_case_with_multimedia_evidences(client):
     status_res = client.get(f"/api/v1/anonymous/cases/{case_token}")
     assert status_res.status_code == 200
     status_json = status_res.json()
-    assert len(status_json["evidences"]) == 4
+    assert status_json["evidences"] == []  # tra cứu ẩn danh không lộ tệp bằng chứng
 
-    returned_mimes = [e["mime_type"] for e in status_json["evidences"]]
-    assert "image/png" in returned_mimes
-    assert "audio/mpeg" in returned_mimes
-    assert "video/mp4" in returned_mimes
-    assert "application/pdf" in returned_mimes
-
-    for ev in status_json["evidences"]:
-        assert ev["file_url"].startswith("/uploads/evidences/")
-        assert len(ev["file_sha256_hash"]) == 64
+    # Kiểm tra phía lưu trữ: 4 tệp đều được mã hóa khi lưu, giữ đúng MIME và mã băm
+    from app.services.evidence import decrypt_blob, evidence_path
+    with SessionLocal() as db:
+        evs = db.query(WhistleCase).filter(WhistleCase.case_token == case_token).one().evidences
+        assert len(evs) == 4
+        mimes = [e.mime_type for e in evs]
+        for mime in ("image/png", "audio/mpeg", "video/mp4", "application/pdf"):
+            assert mime in mimes
+        for ev in evs:
+            assert ev.file_url.startswith("enc:")
+            assert len(ev.file_sha256_hash) == 64
+            blob = evidence_path(ev.file_url).read_bytes()
+            plain, _ = decrypt_blob(blob)
+            import hashlib as _h
+            assert _h.sha256(plain).hexdigest() == ev.file_sha256_hash
+            assert plain[:16] not in blob  # nội dung gốc không nằm rõ trên đĩa

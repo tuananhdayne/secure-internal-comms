@@ -31,9 +31,10 @@ from app.core.constants import CaseStatus, Role
 from app.core.permissions import PRIVILEGED_ROLES, WEB_ASSIGNABLE_ROLES, Perm, has_permission
 from app.core.security import create_access_token, decode_access_token, get_password_hash, verify_password
 from app.db.session import get_db
-from app.models.anonymous import WhistleCase
+from app.models.anonymous import CaseEvidence, WhistleCase
 from app.models.identified import Comment, Post, User
 from app.services.login_throttle import lockout_message, login_throttle
+from app.services.evidence import evidence_response, is_placeholder, read_name
 from app.services.case_crypto import build_officer_reply, decrypt_case_payload, officer_message_view
 
 logger = logging.getLogger(__name__)
@@ -54,13 +55,9 @@ def _local_dt(value: Optional[datetime], fmt: str = "%d/%m/%Y %H:%M") -> str:
     return value.astimezone(_DISPLAY_TZ).strftime(fmt)
 
 
-# Ứng dụng di động tự đính kèm một tệp giữ chỗ khi người dùng không chọn bằng chứng nào
-# (để ràng buộc chữ ký). Tệp này không có giá trị với cán bộ nên ẩn khỏi giao diện.
-_PLACEHOLDER_EVIDENCE = re.compile(r"(?:^|/)(?:[0-9a-f]{32}_)?evidence_\d+\.bin$")
-
-
 def _real_evidences(evidences: Iterable) -> list:
-    return [e for e in evidences if not _PLACEHOLDER_EVIDENCE.search(getattr(e, "file_url", "") or "")]
+    """Bỏ tệp giữ chỗ do app tự đính kèm (không có giá trị với cán bộ)."""
+    return [e for e in evidences if not is_placeholder(e.file_url, e.mime_type)]
 
 
 def _case_code(token: Optional[str]) -> str:
@@ -418,11 +415,29 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
         "decrypted": plain.ok,
         "created_bucket": case.created_bucket.strftime("%Y-%m-%d %H:00:00 (UTC)"),
         "evidences": [
-            {"id": e.id, "file_url": e.file_url, "mime_type": e.mime_type, "file_sha256_hash": e.file_sha256_hash}
-            for e in case.evidences
+            {"id": e.id, "url": f"/admin/evidence/{e.id}", "name": read_name(e.file_url), "mime_type": e.mime_type}
+            for e in case.evidences if not is_placeholder(e.file_url, e.mime_type)
         ],
         "messages": [officer_message_view(m) for m in case.messages],
     })
+
+
+@router.get("/evidence/{evidence_id}")
+def download_evidence_web(evidence_id: int, request: Request, download: int = 0, db: Session = Depends(get_db)):
+    """Tải / xem tệp bằng chứng (đã giải mã) — chỉ Cán bộ Thanh tra."""
+    user = get_current_admin(request, db)
+    if not user:
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Chưa xác thực"})
+    if not has_permission(user.role, Perm.CASE_MANAGE):
+        return _forbidden("Chỉ Ban Thanh Tra mới được xem bằng chứng.")
+    ev = db.query(CaseEvidence).filter(CaseEvidence.id == evidence_id).first()
+    if not ev:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Không tìm thấy tệp"})
+    try:
+        return evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+    except (FileNotFoundError, ValueError):
+        logger.warning("Không đọc được tệp bằng chứng id=%s", evidence_id)
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Tệp không khả dụng"})
 
 
 @router.post("/cases/{case_id}/status")

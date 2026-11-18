@@ -43,8 +43,8 @@ function el(tag, props, ...children) {
     return node;
 }
 function safeEvidenceUrl(url) {
-    // Chỉ chấp nhận đường dẫn nội bộ tới thư mục bằng chứng.
-    return (typeof url === 'string' && /^\/uploads\/evidences\/[A-Za-z0-9._-]+$/.test(url)) ? url : null;
+    // Chỉ chấp nhận route tải bằng chứng có kiểm tra quyền của chính hệ thống.
+    return (typeof url === 'string' && /^\/admin\/evidence\/\d+$/.test(url)) ? url : null;
 }
 function formatTime(raw) {
     // Server trả "YYYY-MM-DD HH:MM:SS" theo UTC -> hiển thị theo giờ máy người xem.
@@ -57,7 +57,6 @@ function caseCode(token) {
     // Cùng quy tắc với filter Jinja `case_code` và ứng dụng di động: 6 ký tự chữ/số cuối, viết hoa.
     return '#' + String(token || '').replace(/[^A-Za-z0-9]/g, '').slice(-6).toUpperCase();
 }
-const PLACEHOLDER_EVIDENCE = /(?:^|\/)(?:[0-9a-f]{32}_)?evidence_\d+\.bin$/;
 const KIND_LABEL = { image: 'Hình ảnh', audio: 'Ghi âm', video: 'Video', file: 'Tài liệu' };
 
 function setBadge(node, cls, iconName, text) {
@@ -95,7 +94,6 @@ function setBadge(node, cls, iconName, text) {
 let lastFocus = null;
 
 function renderEvidence(list) {
-    list = list.filter(ev => !PLACEHOLDER_EVIDENCE.test(String(ev.file_url || '')));
     const box = document.getElementById('modalEvidenceList');
     document.getElementById('modalEvidenceCount').textContent = String(list.length);
     document.getElementById('modalEvidenceBadge').hidden = list.length === 0;
@@ -105,10 +103,9 @@ function renderEvidence(list) {
         return;
     }
     list.forEach(ev => {
-        const url = safeEvidenceUrl(ev.file_url);
+        const url = safeEvidenceUrl(ev.url);
         const mime = String(ev.mime_type || '').toLowerCase();
-        const fileName = url ? url.substring(url.lastIndexOf('/') + 1) : '(tệp không khả dụng)';
-        const displayName = fileName.replace(/^[0-9a-f]{32}_/, '');
+        const displayName = url ? String(ev.name || 'tệp đính kèm') : '(tệp không khả dụng)';
         const kind = mime.startsWith('image/') ? 'image' : mime.startsWith('audio/') ? 'audio' : mime.startsWith('video/') ? 'video' : 'file';
 
         const row = el('div', { class: 'ev-row' },
@@ -117,7 +114,7 @@ function renderEvidence(list) {
                 el('div', { class: 'ev-name', title: displayName, text: displayName }),
                 el('div', { class: 'ev-sub' }, el('span', { text: KIND_LABEL[kind] }))
             ),
-            url ? el('a', { class: 'btn btn-secondary btn-sm', href: url, download: displayName, 'aria-label': 'Tải ' + displayName }, svgIcon('download'), el('span', { text: 'Tải' })) : null
+            url ? el('a', { class: 'btn btn-secondary btn-sm', href: url + '?download=1', download: displayName, 'aria-label': 'Tải ' + displayName }, svgIcon('download'), el('span', { text: 'Tải' })) : null
         );
         const item = el('div', { class: 'ev' }, row);
         if (url && kind !== 'file') {

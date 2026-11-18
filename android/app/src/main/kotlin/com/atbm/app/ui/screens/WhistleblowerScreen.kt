@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -199,18 +200,26 @@ fun WhistleblowerScreen(
                         Text("Bạn muốn tố giác về vấn đề gì?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         Spacer(modifier = Modifier.height(6.dp))
                         listOf("Tham nhũng tài chính", "Quấy rối công sở", "Vi phạm an toàn thông tin", "Gian lận đấu thầu", "Khác").forEach { cat ->
+                            // Cả dòng (chữ + nút) đều chọn được, đúng vai trò "radio" cho trình đọc màn hình
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
+                                    .selectable(
+                                        selected = (category == cat),
+                                        onClick = { category = cat },
+                                        role = androidx.compose.ui.semantics.Role.RadioButton
+                                    )
+                                    .heightIn(min = 48.dp)
+                                    .padding(horizontal = 4.dp)
                             ) {
                                 RadioButton(
                                     selected = (category == cat),
-                                    onClick = { category = cat },
+                                    onClick = null,
                                     colors = RadioButtonDefaults.colors(selectedColor = AccentCyan)
                                 )
-                                Text(cat, fontSize = 13.sp, color = TextPrimary)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(cat, fontSize = 14.sp, color = TextPrimary)
                             }
                         }
 

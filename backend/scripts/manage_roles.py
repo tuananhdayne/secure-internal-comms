@@ -27,11 +27,13 @@ from app.core.constants import Role  # noqa: E402
 from app.core.security import get_password_hash  # noqa: E402
 from app.db.session import Base, SessionLocal, engine  # noqa: E402
 from app.models.identified import User  # noqa: E402
+from app.services.audit import Action, record as audit  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("atbm.roles")
 
 ROLE_CHOICES = sorted(Role.ALL)
+CLI = "server-cli"  # tác nhân trong nhật ký thao tác
 MIN_PASSWORD = 10
 
 
@@ -80,19 +82,24 @@ def main(argv: list[str] | None = None) -> int:
                         role=args.role, password_hash=get_password_hash(_ask_password()), is_active=True))
             db.commit()
             log.info("create user=%s role=%s", args.code, args.role)
+            audit(db, None, Action.ACCOUNT_CREATE, f"user:{args.code}", f"vai trò {args.role}", actor_code=CLI, actor_role=CLI)
         else:
             user = _get(db, args.code)
             if args.cmd == "set-role":
                 old = user.role
                 user.role = args.role
                 log.info("set-role user=%s %s -> %s", args.code, old, args.role)
+                action, detail = Action.ROLE_CHANGE, f"{old} → {args.role}"
             elif args.cmd in ("lock", "unlock"):
                 user.is_active = args.cmd == "unlock"
                 log.info("%s user=%s", args.cmd, args.code)
+                action, detail = (Action.USER_UNLOCK if user.is_active else Action.USER_LOCK), "qua máy chủ"
             elif args.cmd == "reset-password":
                 user.password_hash = get_password_hash(_ask_password())
                 log.info("reset-password user=%s", args.code)
+                action, detail = Action.PASSWORD_RESET, ""
             db.commit()
+            audit(db, None, action, f"user:{args.code}", detail, actor_code=CLI, actor_role=CLI)
     print("Đã thực hiện.")
     return 0
 

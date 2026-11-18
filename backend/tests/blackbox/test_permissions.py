@@ -122,6 +122,7 @@ WEB_PAGES = {
     "/admin/dashboard": {"SYSTEM_ADMIN"},
     "/admin/users": {"SYSTEM_ADMIN"},
     "/admin/posts": {"SYSTEM_ADMIN"},
+    "/admin/audit": {"BOARD_DIRECTOR"},
 }
 
 

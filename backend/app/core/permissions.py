@@ -26,13 +26,14 @@ class Perm:
     CASE_STATS = "case.stats"              # thống kê số lượng hồ sơ (không có nội dung)
     POST_MANAGE = "post.manage"            # đăng / ghim / xóa bảng tin
     USER_MANAGE = "user.manage"            # tạo, khóa/mở khóa tài khoản Nhân viên & Ban Giám đốc
+    AUDIT_VIEW = "audit.view"              # xem nhật ký thao tác của Thanh tra / Quản trị (giám sát)
 
 
 ROLE_PERMISSIONS: Dict[str, FrozenSet[str]] = {
     Role.EMPLOYEE: frozenset({Perm.APP_ACCESS, Perm.FEED_COMMENT, Perm.WHISTLE_SUBMIT}),
     Role.BOARD_DIRECTOR: frozenset({
         Perm.APP_ACCESS, Perm.FEED_COMMENT, Perm.WHISTLE_SUBMIT,
-        Perm.WEB_PORTAL, Perm.CASE_STATS,
+        Perm.WEB_PORTAL, Perm.CASE_STATS, Perm.AUDIT_VIEW,
     }),
     Role.COMPLIANCE_OFFICER: frozenset({
         Perm.APP_ACCESS, Perm.FEED_COMMENT, Perm.WHISTLE_SUBMIT,

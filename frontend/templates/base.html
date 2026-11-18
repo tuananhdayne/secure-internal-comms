@@ -36,6 +36,9 @@
                 {% if can(current_user.role, Perm.CASE_STATS) %}
                 <a href="/admin/stats" class="side-link {% if path == '/admin/stats' %}active{% endif %}">{{ icon('activity') }}<span>Thống kê tố giác</span></a>
                 {% endif %}
+                {% if can(current_user.role, Perm.AUDIT_VIEW) %}
+                <a href="/admin/audit" class="side-link {% if path == '/admin/audit' %}active{% endif %}">{{ icon('file') }}<span>Nhật ký thao tác</span></a>
+                {% endif %}
                 {% if can(current_user.role, Perm.USER_MANAGE) %}
                 <a href="/admin/dashboard" class="side-link {% if path == '/admin/dashboard' %}active{% endif %}">{{ icon('grid') }}<span>Tổng quan</span></a>
                 <a href="/admin/users" class="side-link {% if path == '/admin/users' %}active{% endif %}">{{ icon('users') }}<span>Nhân sự</span></a>
@@ -83,7 +86,7 @@
             {% else %}
             <div class="role-strip">
                 <span class="chip-ico" style="background:var(--primary-light);color:var(--primary);">{{ icon('activity', 'icon-sm') }}</span>
-                <div><strong>Xin chào, {{ current_user.full_name }}.</strong> Bạn đang xem số liệu tổng hợp về tố giác. Nội dung từng hồ sơ và danh tính người gửi không được hiển thị.</div>
+                <div><strong>Xin chào, {{ current_user.full_name }}.</strong> Bạn có thể xem số liệu tổng hợp về tố giác và nhật ký thao tác của Ban Thanh tra, Quản trị viên. Nội dung hồ sơ và danh tính người gửi không được hiển thị.</div>
             </div>
             {% endif %}
 

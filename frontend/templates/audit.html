@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Nhật ký thao tác · Cổng quản trị nội bộ{% endblock %}
+
+{% block content %}
+{% set role_labels = {'COMPLIANCE_OFFICER': 'Thanh tra', 'SYSTEM_ADMIN': 'Quản trị', 'BOARD_DIRECTOR': 'Ban Giám đốc', 'server-cli': 'Máy chủ'} %}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">{{ icon('activity', 'icon-sm') }} Giám sát</div>
+        <h1 class="page-title">Nhật ký thao tác</h1>
+        <p class="page-sub">Ai đã mở, xử lý hồ sơ hoặc thay đổi tài khoản, bảng tin — để bảo đảm trách nhiệm giải trình. Hoạt động của nhân viên trên ứng dụng không được ghi, để bảo vệ người tố giác.</p>
+    </div>
+</div>
+
+<section class="panel">
+    <form class="toolbar" method="GET" action="/admin/audit" style="display:flex;flex-wrap:wrap;gap:.6rem;padding:1rem 1.35rem;border-bottom:1px solid var(--border-subtle);">
+        <label class="sr-only" for="f_action">Loại thao tác</label>
+        <select class="form-control" id="f_action" name="action" style="max-width:280px;">
+            <option value="">Tất cả thao tác</option>
+            {% for code, label in labels.items() %}
+            <option value="{{ code }}" {% if code == f_action %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <label class="sr-only" for="f_actor">Mã người thực hiện</label>
+        <input class="form-control" id="f_actor" name="actor" value="{{ f_actor }}" placeholder="Mã người thực hiện (VD: TT001)" style="max-width:240px;">
+        <button class="btn btn-secondary" type="submit">{{ icon('search', 'icon-sm') }}<span>Lọc</span></button>
+    </form>
+    <div class="table-wrap">
+        <table class="responsive">
+            <thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Thao tác</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td class="nowrap t-muted">{{ r.created_at|local_dt('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td data-label="Người thực hiện" class="nowrap"><span class="t-strong">{{ r.actor_code }}</span> <span class="badge badge-neutral">{{ role_labels.get(r.actor_role, r.actor_role) }}</span></td>
+                    <td data-label="Thao tác">{{ labels.get(r.action, r.action) }}</td>
+                    <td data-label="Đối tượng" class="nowrap">{% if r.target.startswith('case:') %}Hồ sơ số {{ r.target[5:] }}{% elif r.target.startswith('user:') %}Tài khoản {{ r.target[5:] }}{% elif r.target.startswith('post:') %}Bài viết #{{ r.target[5:] }}{% else %}{{ r.target or '—' }}{% endif %}</td>
+                    <td data-label="Chi tiết" class="t-muted">{{ r.detail or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5"><div class="empty"><div class="empty-title">Chưa có thao tác nào</div></div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

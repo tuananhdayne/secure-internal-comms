@@ -18,6 +18,7 @@ from app.schemas.officer import CaseStatusUpdate, DecryptedCaseResponse, Officer
 from app.services.case_crypto import decrypt_case_payload
 from app.services.evidence import evidence_response, is_placeholder
 from app.core.config import settings
+from app.services.audit import Action, record as audit
 
 router = APIRouter(tags=["Officer Investigation"])
 officer_only = require_permission(Perm.CASE_MANAGE)
@@ -66,6 +67,7 @@ def decrypt_case_details(
     """Giải mã hồ sơ bằng khóa riêng EC của Ban Thanh tra (DBA / Admin không có khóa này)."""
     case = _get_case(db, case_id, with_children=True)
     plain = decrypt_case_payload(case)
+    audit(db, current_user, Action.CASE_VIEW, f"case:{case.id}")
     if not plain.ok:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=f"Lỗi giải mã hồ sơ: {plain.error}")
@@ -98,8 +100,10 @@ def update_case_status(
     new_status = status_in.status.strip().upper()
     if new_status not in CaseStatus.ALL:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Trạng thái không hợp lệ: {new_status}")
+    old = case.status
     case.status = new_status
     db.commit()
+    audit(db, current_user, Action.CASE_STATUS, f"case:{case.id}", f"{old} → {new_status}")
     db.refresh(case)
     return _summary(case)
 
@@ -124,6 +128,7 @@ def reply_to_anonymous_whistleblower(
     )
     db.add(message)
     db.commit()
+    audit(db, current_user, Action.CASE_REPLY, f"case:{case.id}")
     db.refresh(message)
     return CaseMessageResponse.model_validate(message)
 
@@ -140,6 +145,8 @@ def download_evidence(
     if not ev:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tệp bằng chứng.")
     try:
-        return evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+        resp = evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+        audit(db, current_user, Action.EVIDENCE_DOWNLOAD, f"case:{ev.case_id}", f"tệp #{ev.id}")
+        return resp
     except (FileNotFoundError, ValueError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tệp bằng chứng không khả dụng.")

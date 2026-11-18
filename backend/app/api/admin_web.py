@@ -32,8 +32,9 @@ from app.core.permissions import PRIVILEGED_ROLES, WEB_ASSIGNABLE_ROLES, Perm, h
 from app.core.security import create_access_token, decode_access_token, get_password_hash, verify_password
 from app.db.session import get_db
 from app.models.anonymous import CaseEvidence, WhistleCase
-from app.models.identified import Comment, Post, User
+from app.models.identified import AuditLog, Comment, Post, User
 from app.services.login_throttle import lockout_message, login_throttle
+from app.services.audit import Action, record as audit
 from app.services.evidence import evidence_response, is_placeholder, read_name
 from app.services.case_crypto import build_officer_reply, decrypt_case_payload, officer_message_view
 
@@ -185,6 +186,7 @@ def login_submit(
     if not user.is_active:
         return _render(request, "login.html", current_user=None, error="Tài khoản này đã bị vô hiệu hóa.")
     login_throttle.record_success(code)
+    audit(db, user, Action.WEB_LOGIN)
 
     response = _redirect(_home_url(user))
     response.set_cookie(
@@ -246,7 +248,7 @@ def create_user(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    _, denied = _guard(request, db, Perm.USER_MANAGE,
+    actor, denied = _guard(request, db, Perm.USER_MANAGE,
                        deny_reason="Chỉ Quản trị viên hệ thống mới được tạo tài khoản.")
     if denied:
         return denied
@@ -269,6 +271,7 @@ def create_user(
             is_active=True,
         ))
         db.commit()
+        audit(db, actor, Action.USER_CREATE, f"user:{code}", f"vai trò {role_clean}")
     return _redirect("/admin/users")
 
 
@@ -279,7 +282,7 @@ def toggle_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     Tài khoản Thanh tra / Quản trị chỉ quản lý qua scripts/manage_roles.py (tránh việc Quản trị
     vô hiệu hóa toàn bộ Ban Thanh tra từ web).
     """
-    _, denied = _guard(request, db, Perm.USER_MANAGE,
+    actor, denied = _guard(request, db, Perm.USER_MANAGE,
                        deny_reason="Chỉ Quản trị viên hệ thống mới được khóa/mở khóa tài khoản.")
     if denied:
         return denied
@@ -289,6 +292,7 @@ def toggle_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_active = not target.is_active
         db.commit()
+        audit(db, actor, Action.USER_UNLOCK if target.is_active else Action.USER_LOCK, f"user:{target.employee_code}")
     return _redirect("/admin/users")
 
 
@@ -312,20 +316,24 @@ def create_post(
     user, denied = _guard(request, db, Perm.POST_MANAGE, deny_reason="Chỉ Quản trị viên hệ thống mới được đăng bài.")
     if denied:
         return denied
-    db.add(Post(title=title.strip(), content=content.strip(), author_id=user.id, is_pinned=(is_pinned == "true")))
+    post = Post(title=title.strip(), content=content.strip(), author_id=user.id, is_pinned=(is_pinned == "true"))
+    db.add(post)
     db.commit()
+    audit(db, user, Action.POST_CREATE, f"post:{post.id}", post.title[:120])
     return _redirect("/admin/posts")
 
 
 @router.post("/posts/delete/{post_id}")
 def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    _, denied = _guard(request, db, Perm.POST_MANAGE, deny_reason="Chỉ Quản trị viên hệ thống mới được xóa bài.")
+    actor, denied = _guard(request, db, Perm.POST_MANAGE, deny_reason="Chỉ Quản trị viên hệ thống mới được xóa bài.")
     if denied:
         return denied
     target = db.query(Post).filter(Post.id == post_id).first()
     if target:
+        title = target.title
         db.delete(target)
         db.commit()
+        audit(db, actor, Action.POST_DELETE, f"post:{post_id}", title[:120])
     return _redirect("/admin/posts")
 
 
@@ -361,6 +369,22 @@ def case_stats(request: Request, db: Session = Depends(get_db)):
         total=sum(by_status.values()), by_status=by_status,
         by_category=by_category, by_month=sorted(by_month.items(), key=lambda kv: kv[0][3:] + kv[0][:2]),
     )
+
+
+@router.get("/audit", response_class=HTMLResponse)
+def audit_page(request: Request, action: str = "", actor: str = "", db: Session = Depends(get_db)):
+    """Nhật ký thao tác của người có đặc quyền — dành cho Ban Giám đốc giám sát."""
+    user, denied = _guard(request, db, Perm.AUDIT_VIEW, page=True)
+    if denied:
+        return denied
+    q = db.query(AuditLog)
+    if action:
+        q = q.filter(AuditLog.action == action)
+    if actor.strip():
+        q = q.filter(AuditLog.actor_code == actor.strip().upper())
+    rows = q.order_by(AuditLog.id.desc()).limit(300).all()
+    return _render(request, "audit.html", current_user=user, rows=rows, labels=Action.LABELS,
+                   f_action=action, f_actor=actor.strip())
 
 
 # ============================================================================
@@ -405,6 +429,7 @@ def decrypt_case_json(case_id: int, request: Request, db: Session = Depends(get_
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Không tìm thấy hồ sơ"})
 
     plain = decrypt_case_payload(case)
+    audit(db, user, Action.CASE_VIEW, f"case:{case.id}")
     return JSONResponse(content={
         "id": case.id,
         "case_token": case.case_token,
@@ -434,7 +459,9 @@ def download_evidence_web(evidence_id: int, request: Request, download: int = 0,
     if not ev:
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Không tìm thấy tệp"})
     try:
-        return evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+        resp = evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+        audit(db, user, Action.EVIDENCE_DOWNLOAD, f"case:{ev.case_id}", f"tệp #{ev.id}")
+        return resp
     except (FileNotFoundError, ValueError):
         logger.warning("Không đọc được tệp bằng chứng id=%s", evidence_id)
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Tệp không khả dụng"})
@@ -447,7 +474,7 @@ def update_case_status_web(
     new_status: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    _, denied = _guard(request, db, Perm.CASE_MANAGE,
+    actor, denied = _guard(request, db, Perm.CASE_MANAGE,
                        deny_reason="Chỉ Ban Thanh Tra mới có thẩm quyền cập nhật trạng thái hồ sơ.")
     if denied:
         return denied
@@ -457,8 +484,10 @@ def update_case_status_web(
                             content={"error": f"Trạng thái không hợp lệ: {new_status}"})
     case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
     if case:
+        old = case.status
         case.status = status_clean
         db.commit()
+        audit(db, actor, Action.CASE_STATUS, f"case:{case_id}", f"{old} → {status_clean}")
     return _redirect(_case_url(case_id))
 
 
@@ -470,7 +499,7 @@ def reply_case_web(
     db: Session = Depends(get_db),
 ):
     """Thanh tra gửi phản hồi: server mã hóa ECIES tới khóa công khai của hồ sơ."""
-    _, denied = _guard(request, db, Perm.CASE_MANAGE,
+    actor, denied = _guard(request, db, Perm.CASE_MANAGE,
                        deny_reason="Chỉ Ban Thanh Tra mới có thẩm quyền gửi tin nhắn điều tra.")
     if denied:
         return denied
@@ -483,6 +512,7 @@ def reply_case_web(
     try:
         db.add(build_officer_reply(case, text))
         db.commit()
+        audit(db, actor, Action.CASE_REPLY, f"case:{case_id}")  # không ghi nội dung tin nhắn
     except Exception:
         db.rollback()
         logger.exception("Lỗi mã hóa / ghi phản hồi cho hồ sơ id=%s", case_id)

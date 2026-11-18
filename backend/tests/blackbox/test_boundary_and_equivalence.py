@@ -8,6 +8,7 @@ Kiểm thử Hộp đen (Black-Box Testing) theo 4 kỹ thuật chuẩn:
 """
 
 from datetime import datetime, timezone
+import secrets
 import hashlib
 import re
 import io
@@ -183,7 +184,7 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
         format=serialization.PublicFormat.UncompressedPoint,
     ).hex()
 
-    case_token = f"CASE-PATH-{int(time.time())}"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     file_bytes = b"SAFE_BINARY_EVIDENCE_CONTENT"
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 

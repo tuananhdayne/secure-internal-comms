@@ -1,3 +1,4 @@
+import secrets
 import io
 import pytest
 from fastapi.testclient import TestClient
@@ -27,7 +28,7 @@ def test_submit_case_with_multimedia_evidences(client):
     plaintext = "Tiêu đề tham nhũng đa phương tiện|||Nội dung mô tả chi tiết kèm video, ghi âm hiện trường.".encode("utf-8")
     enc_payload = ecies_encrypt(officer_pub_hex, plaintext)
 
-    case_token = "CASE-MULTIMEDIA-TEST-999"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham nhũng tài chính"
     case_pub_key = "04" + "aa" * 64
 

@@ -9,6 +9,7 @@ Luồng nộp hồ sơ (POST /cases):
     lưu tệp (services.evidence) -> tính H (BlindSignatureEngine.compute_payload_hash)
     -> kiểm s^e mod N == H -> lưu WhistleCase với created_bucket làm tròn giờ.
 """
+import re
 from datetime import datetime, timezone
 from typing import List
 
@@ -54,6 +55,11 @@ def _find_case(db: Session, case_token: str) -> WhistleCase:
     return case
 
 
+_STRONG_TOKEN = re.compile(r"[A-Za-z0-9_-]{24,64}")
+MIN_TOKEN_ALNUM = 24
+ERR_WEAK_TOKEN = "Mã hồ sơ không hợp lệ. Vui lòng cập nhật ứng dụng lên phiên bản mới nhất."
+
+
 @router.post("/cases", response_model=CaseSubmitResponse, status_code=status.HTTP_201_CREATED)
 async def submit_anonymous_case(
     category: str = Form(...),
@@ -70,6 +76,10 @@ async def submit_anonymous_case(
 ) -> CaseSubmitResponse:
     """Nộp hồ sơ tố giác ẩn danh, xác minh bằng chữ ký mù RSA (s^e mod N == H)."""
     token = case_token.strip()
+    # Mã hồ sơ là bí mật duy nhất để tra cứu ẩn danh -> bắt buộc đủ dài, chỉ ký tự an toàn
+    # (app sinh "CASE-" + 32 hex ngẫu nhiên). Từ chối mã ngắn / đoán được (vd. CASE-<thời gian>).
+    if not _STRONG_TOKEN.fullmatch(token) or sum(ch.isalnum() for ch in token) < MIN_TOKEN_ALNUM:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERR_WEAK_TOKEN)
     if db.query(WhistleCase.id).filter(WhistleCase.case_token == token).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERR_TOKEN_EXISTS)
 

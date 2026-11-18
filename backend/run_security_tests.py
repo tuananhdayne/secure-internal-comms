@@ -10,6 +10,7 @@ Chạy 5 kịch bản bảo mật cốt lõi:
 5. Mô phỏng cơ chế Panic PIN & Tiêu hủy Dữ liệu Khẩn cấp (Duress / Emergency Wipe Simulation)
 """
 
+import secrets
 import hashlib
 import io
 import os
@@ -108,7 +109,7 @@ def test_scenario_1_anti_forgery(client: TestClient) -> bool:
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     )
-    case_token = f"CASE-{int(time.time())}-FAKE"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham nhũng tài chính"
     enc_title = "Tiêu đề giả mạo"
     enc_desc = "Mô tả giả mạo"
@@ -271,7 +272,7 @@ def test_scenario_3_anti_tampering(client: TestClient) -> bool:
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     ).hex()
-    case_token = f"CASE-{int(time.time())}-INTEG"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham ô tài sản"
     enc_title = "Bằng chứng tham ô quý 3"
     enc_desc = "Đính kèm file kế toán quỹ đen"

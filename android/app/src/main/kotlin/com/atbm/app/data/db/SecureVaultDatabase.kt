@@ -71,7 +71,11 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
                 legacy.changePassword(VaultKey.passphrase(appContext))
                 legacy.close()
             } catch (_: Exception) {
-                // Không mở được bằng khóa cũ (file hỏng): không thể khôi phục -> tạo kho mới.
+                // Không mở được bằng khóa cũ (file hỏng): không thể khôi phục -> ghi đè rồi tạo kho mới.
+                try {
+                    dbFile.writeBytes(ByteArray(dbFile.length().toInt()).also { SecureRandom().nextBytes(it) })
+                } catch (_: Exception) {
+                }
                 dbFile.delete()
                 VaultKey.destroy(appContext)
             }

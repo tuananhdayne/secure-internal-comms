@@ -1,3 +1,4 @@
+import secrets
 import io
 import hashlib
 import pytest
@@ -26,7 +27,7 @@ def teardown_module(module):
 
 def test_submit_valid_case_success():
     # 1. Client sinh case_token và cặp khóa EC tạm thời
-    case_token = "case-uuid-valid-1234"
+    case_token = "CASE-0123456789abcdef0123456789abcdef"
     case_priv_key = ec.generate_private_key(ec.SECP256R1())
     case_pub_bytes = case_priv_key.public_key().public_bytes(
         encoding=serialization.Encoding.X962,
@@ -93,7 +94,7 @@ def test_submit_case_tampered_signature_fails():
         "payload_ephemeral_pub": "04" + "a" * 128,
         "payload_iv": "b" * 24,
         "payload_auth_tag": "c" * 32,
-        "case_token": "case-uuid-fake-sig",
+        "case_token": f"CASE-{secrets.token_hex(16)}",
         "case_public_key": "04" + "b" * 128,
         "unblinded_signature": "0x1234567890abcdef"  # Chữ ký giả mạo
     }
@@ -103,7 +104,7 @@ def test_submit_case_tampered_signature_fails():
 
 
 def test_get_case_status_and_chat():
-    case_token = "case-uuid-valid-1234"
+    case_token = "CASE-0123456789abcdef0123456789abcdef"
     status_resp = client.get(f"/api/v1/anonymous/cases/{case_token}")
     assert status_resp.status_code == 200
     data = status_resp.json()

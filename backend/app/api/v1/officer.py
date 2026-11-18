@@ -69,8 +69,9 @@ def decrypt_case_details(
     plain = decrypt_case_payload(case)
     audit(db, current_user, Action.CASE_VIEW, f"case:{case.id}")
     if not plain.ok:
+        # Chi tiết lỗi mật mã chỉ ghi log (decrypt_case_payload đã log), không trả cho client.
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail=f"Lỗi giải mã hồ sơ: {plain.error}")
+                            detail="Không thể giải mã hồ sơ này.")
     return DecryptedCaseResponse(
         id=case.id,
         case_token=case.case_token,

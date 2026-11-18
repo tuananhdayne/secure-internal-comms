@@ -13,6 +13,7 @@ Kiểm tra luồng liên thông toàn diện giữa Mobile Client, Backend Serve
 11. Client nặc danh tra cứu hồ sơ và giải mã tin nhắn phản hồi từ Thanh tra.
 """
 
+import secrets
 import hashlib
 import io
 import time
@@ -73,7 +74,7 @@ def test_complete_end_to_end_flow(client: TestClient):
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     ).hex()
-    case_token = f"CASE-{int(time.time())}-E2E"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham ô tài sản"
     raw_title = "Gian lận quỹ tài chính chi nhánh miền Bắc"
     raw_desc = "Phát hiện lập 2 sổ sách kế toán để trốn thuế và chia chác tiền chênh lệch."

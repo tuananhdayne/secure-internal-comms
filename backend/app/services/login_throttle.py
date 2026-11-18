@@ -9,12 +9,16 @@ nhiều worker / nhiều máy cần chuyển sang kho dùng chung (Redis...).
 """
 from __future__ import annotations
 
+import logging
+import re
 import threading
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List
 
 from app.core.config import settings
+
+logger = logging.getLogger("app.auth")
 
 
 @dataclass
@@ -58,10 +62,20 @@ class LoginThrottle:
             entry = self._entries.setdefault(key, _Entry())
             entry.failures = [t for t in entry.failures if now - t < self.window_seconds]
             entry.failures.append(now)
-            if len(entry.failures) >= self.max_failures:
+            count = len(entry.failures)
+            locked = count >= self.max_failures
+            if locked:
                 entry.locked_until = now + self.lockout_seconds
                 entry.failures.clear()
             self._prune(now)
+        # Luồng định danh (không phải ẩn danh) -> được ghi mã tài khoản; KHÔNG ghi IP.
+        # Mã do người dùng nhập: lọc ký tự lạ để không thể chèn dòng log giả (log injection).
+        key = re.sub(r"[^A-Z0-9._-]", "?", key)
+        if locked:
+            logger.warning("Tạm khóa đăng nhập tài khoản %s %d phút sau %d lần nhập sai",
+                           key[:50], int(self.lockout_seconds // 60), self.max_failures)
+        else:
+            logger.warning("Đăng nhập sai: tài khoản %s (lần %d/%d)", key[:50], count, self.max_failures)
 
     def record_success(self, employee_code: str) -> None:
         with self._lock:

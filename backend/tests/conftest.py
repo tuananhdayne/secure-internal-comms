@@ -14,6 +14,7 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="atbm_test_"))
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_TMP / 'test.db'}")
 os.environ.setdefault("UPLOAD_DIR", str(_TMP / "uploads"))
+os.environ.setdefault("LOG_FILE", "")  # test không ghi file log
 os.environ.setdefault("ENABLE_API_DOCS", "true")  # test_main kiểm tra lược đồ OpenAPI
 
 from app.db.session import Base, SessionLocal, engine  # noqa: E402

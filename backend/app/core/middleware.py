@@ -58,7 +58,16 @@ async def app_middleware(request: Request, call_next):
 
         elapsed_ms = (time.perf_counter() - started) * 1000
         if not is_anonymous:
-            logger.info("%s %s -> %s (%.1f ms)", request.method, request.url.path, response.status_code, elapsed_ms)
+            code = response.status_code
+            if request.url.path.startswith("/static/"):
+                level = logging.DEBUG
+            elif code in (401, 403, 429):
+                level = logging.WARNING
+            elif code >= 500:
+                level = logging.ERROR
+            else:
+                level = logging.INFO
+            logger.log(level, "%s %s -> %s (%.1f ms)", request.method, request.url.path, code, elapsed_ms)
         elif response.status_code >= 500:
             logger.warning("%s %s -> %s", request.method, mask_path(request.url.path), response.status_code)
 

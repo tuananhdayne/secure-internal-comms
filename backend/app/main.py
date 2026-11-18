@@ -1,102 +1,97 @@
-import os
+"""Điểm khởi tạo FastAPI — đọc file này để nắm toàn bộ app:
+
+    Middleware   app/core/middleware.py   request_id, xóa header IP (ẩn danh), log an toàn, header bảo mật
+    Static       /uploads  (bằng chứng, sandbox CSP)   /static  (CSS/JS của Web Admin)
+    REST API     /api/v1/auth | posts | compliance       Cụm 1 (định danh, JWT)
+                 /api/v1/anonymous                       Cụm 2 (ẩn danh, không JWT)
+                 /api/v1/officer                         Cụm 2 (Ban Thanh tra, JWT)
+    Web Admin    /admin/*   app/api/admin_web.py (Jinja2, cookie JWT)
+    Hệ thống     /health, /docs (Swagger), / -> /admin
+"""
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from fastapi import FastAPI, Request
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
-from app.db.session import engine, Base
-from app.crypto.key_manager import key_manager
-from app.api.v1 import auth, posts, compliance, anonymous, officer
 from app.api import admin_web
+from app.api.v1 import anonymous, auth, compliance, officer, posts
+from app.core.config import settings
+from app.core.logging import setup_logging
+from app.core.middleware import app_middleware
+from app.crypto.key_manager import key_manager
+from app.db.session import Base, engine
+
+setup_logging()
+logger = logging.getLogger("app.startup")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Khởi tạo tài nguyên hệ thống khi server startup."""
-    # 1. Khởi tạo Database Tables
+    """Khởi tạo khi server start: bảng CSDL, cặp khóa nghiệp vụ, thư mục lưu trữ."""
+    if settings.uses_insecure_jwt_secret:
+        logger.warning(
+            "JWT_SECRET_KEY đang là giá trị mặc định công khai (hoặc < 32 ký tự): ai cũng có thể tự ký "
+            "token Quản trị viên. Đặt khóa ngẫu nhiên trong backend/.env, ví dụ: "
+            "python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
     Base.metadata.create_all(bind=engine)
-
-    # 2. Đảm bảo các cặp khóa nghiệp vụ đã sẵn sàng
-    _ = key_manager.rsa_public_numbers
-    _ = key_manager.ec_public_key_hex
-
-    # 3. Tạo sẵn các thư mục lưu trữ an toàn
-    settings.uploads_path.mkdir(parents=True, exist_ok=True)
-    (settings.uploads_path / "evidences").mkdir(parents=True, exist_ok=True)
-    (settings.uploads_path / "docs").mkdir(parents=True, exist_ok=True)
-
+    _ = key_manager.rsa_public_numbers  # sinh / nạp khóa RSA ký mù
+    _ = key_manager.ec_public_key_hex    # sinh / nạp khóa EC giải mã
+    _ = settings.uploads_path            # tạo uploads/evidences, uploads/docs
     yield
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=(
-        "Nền tảng Mạng truyền thông nội bộ doanh nghiệp kết hợp Cổng tố giác sai phạm ẩn danh "
-        "với cơ chế Ký mù RSA Chaum, Mã hóa bất đối xứng ECIES P-256 và Kênh Chat E2EE."
+        "Nền tảng truyền thông nội bộ doanh nghiệp kết hợp cổng tố giác sai phạm ẩn danh "
+        "với ký mù RSA Chaum, mã hóa ECIES P-256 và kênh chat E2EE."
     ),
-    version="1.0.0",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan
+    version="1.1.0",
+    # Tắt mặc định (ENABLE_API_DOCS=false) để bản bàn giao không lộ bản đồ API.
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.ENABLE_API_DOCS else None,
+    docs_url="/docs" if settings.ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if settings.ENABLE_API_DOCS else None,
+    lifespan=lifespan,
 )
 
-# 1. CORS Middleware
+# --- Middleware (đăng ký sau = chạy ngoài cùng) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.cors_origin_list,
+    # Không cho trang web khác gửi kèm cookie admin_token (trước đây "*" + credentials=True).
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+app.middleware("http")(app_middleware)
 
-
-# 2. Zero-Knowledge Sanitizer Middleware (Tẩy sạch Header IP cho Anonymous Routes)
-@app.middleware("http")
-async def sanitize_anonymous_request_middleware(request: Request, call_next):
-    if request.url.path.startswith(f"{settings.API_V1_STR}/anonymous"):
-        # Xóa bỏ các headers định danh có thể làm lộ địa chỉ IP hoặc thông tin thiết bị
-        sensitive_headers = {b"x-forwarded-for", b"x-real-ip", b"client-ip"}
-        cleaned_headers = [
-            (key, val) for key, val in request.scope.get("headers", [])
-            if key.lower() not in sensitive_headers
-        ]
-        request.scope["headers"] = cleaned_headers
-
-    response = await call_next(request)
-    return response
-
-
-# 3. Mount Static Uploads & Frontend Assets
+# --- Tệp tĩnh ---
 app.mount("/uploads", StaticFiles(directory=str(settings.uploads_path)), name="uploads")
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 
-# 4. Include API Routers
+# --- REST API v1 ---
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth")
 app.include_router(posts.router, prefix=f"{settings.API_V1_STR}/posts")
 app.include_router(compliance.router, prefix=f"{settings.API_V1_STR}/compliance")
 app.include_router(anonymous.router, prefix=f"{settings.API_V1_STR}/anonymous")
 app.include_router(officer.router, prefix=f"{settings.API_V1_STR}/officer")
+
+# --- Web Admin ---
 app.include_router(admin_web.router)
 
 
-from fastapi.responses import RedirectResponse
-
-
-# 5. Root & Health Check Endpoints
 @app.get("/health", tags=["System"])
 def health_check():
     """Kiểm tra trạng thái hoạt động của hệ thống."""
-    return {
-        "status": "ok",
-        "app": settings.PROJECT_NAME,
-        "api_version": "v1"
-    }
+    return {"status": "ok", "app": settings.PROJECT_NAME, "api_version": "v1"}
 
 
 @app.get("/", include_in_schema=False)
 def root_redirect():
-    """Tự động chuyển hướng trang chủ vào giao diện Web Admin & Dashboard."""
     return RedirectResponse(url="/admin", status_code=303)

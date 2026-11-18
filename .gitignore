@@ -35,6 +35,10 @@ ENV/
 *.keystore
 *.jks
 credentials.json
+# Chứng chỉ TLS dev (khóa riêng server) - sinh lại bằng backend/scripts/gen_dev_certs.py
+backend/certs/
+# CA công khai cho app Android (không chứa khóa riêng) cần được commit để build được
+!android/app/src/main/res/raw/atbm_dev_ca.pem
 
 # SQLite Databases & Local Storage
 *.db

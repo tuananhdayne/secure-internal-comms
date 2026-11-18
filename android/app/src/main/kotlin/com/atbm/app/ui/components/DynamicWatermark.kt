@@ -30,7 +30,7 @@ fun DynamicWatermarkBox(
     content: @Composable () -> Unit
 ) {
     val currentTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
-    val watermarkText = "ATBM CONFIDENTIAL • $fullName ($employeeCode) • $currentTime"
+    val watermarkText = "TÀI LIỆU NỘI BỘ • $fullName • $currentTime"
 
     Box(modifier = modifier.fillMaxSize()) {
         // 1. Nội dung chính bên dưới
@@ -40,14 +40,15 @@ fun DynamicWatermarkBox(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val paint = Paint().apply {
                 color = Color.White.copy(alpha = 0.08f).toArgb()
-                textSize = 34f
+                textSize = 30f
                 isAntiAlias = true
                 isFakeBoldText = true
             }
 
             val canvas = drawContext.canvas.nativeCanvas
             val stepY = 220f
-            val stepX = 450f
+            // Khoảng cách ngang theo độ dài chữ thật để các dòng không chồng lên nhau
+            val stepX = paint.measureText(watermarkText) + 160f
 
             canvas.save()
             canvas.rotate(-30f, size.width / 2, size.height / 2)

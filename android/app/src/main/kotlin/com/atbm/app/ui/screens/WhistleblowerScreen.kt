@@ -10,6 +10,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +35,7 @@ import com.atbm.app.data.db.SecureVaultDatabase
 import com.atbm.app.domain.crypto.EciesHelper
 import com.atbm.app.domain.crypto.MetadataSanitizer
 import com.atbm.app.domain.crypto.RsaBlindClient
+import com.atbm.app.ui.components.DisplayText
 import com.atbm.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -106,11 +116,11 @@ fun WhistleblowerScreen(
                 val (name, size) = queryUriFileInfo(context, uri)
                 val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
                 val label = when {
-                    mime.startsWith("image/") -> "📷 Ảnh"
-                    mime.startsWith("video/") -> "🎥 Video"
-                    mime.startsWith("audio/") -> "🎙️ Âm thanh"
-                    mime.contains("pdf") -> "📄 PDF"
-                    else -> "📎 Tệp"
+                    mime.startsWith("image/") -> "Ảnh"
+                    mime.startsWith("video/") -> "Video"
+                    mime.startsWith("audio/") -> "Ghi âm"
+                    mime.contains("pdf") -> "PDF"
+                    else -> "Tài liệu"
                 }
                 SelectedEvidenceFile(uri, name, size, mime, label)
             }
@@ -125,15 +135,17 @@ fun WhistleblowerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Cổng Tố Giác Ẩn Danh (Wizard Bước $currentStep/3)",
+                        text = "Gửi tố giác ẩn danh",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", fontSize = 20.sp, color = TextPrimary)
+                    IconButton(onClick = {
+                        if (currentStep > 1 && !isProcessing) { currentStep -= 1; statusMessage = null } else onNavigateBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Quay lại", tint = TextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CardDark)
@@ -154,8 +166,8 @@ fun WhistleblowerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StepIndicator(step = 1, title = "Nội dung", active = currentStep >= 1)
-                StepIndicator(step = 2, title = "Mật mã & ECIES", active = currentStep >= 2)
-                StepIndicator(step = 3, title = "Ký Mù & Nộp", active = currentStep >= 3)
+                StepIndicator(step = 2, title = "Xem lại", active = currentStep >= 2)
+                StepIndicator(step = 3, title = "Gửi đi", active = currentStep >= 3)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -184,9 +196,9 @@ fun WhistleblowerScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Danh mục sai phạm:", fontSize = 13.sp, color = TextSecondary)
+                        Text("Bạn muốn tố giác về vấn đề gì?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         Spacer(modifier = Modifier.height(6.dp))
-                        listOf("Tham nhũng tài chính", "Quấy rối công sở", "Vi phạm bảo mật ATBM", "Gian lận đấu thầu", "Khác").forEach { cat ->
+                        listOf("Tham nhũng tài chính", "Quấy rối công sở", "Vi phạm an toàn thông tin", "Gian lận đấu thầu", "Khác").forEach { cat ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -207,7 +219,7 @@ fun WhistleblowerScreen(
                             OutlinedTextField(
                                 value = customCategory,
                                 onValueChange = { customCategory = it },
-                                label = { Text("Mô tả danh mục khác (tùy chọn)") },
+                                label = { Text("Vấn đề khác (không bắt buộc)") },
                                 placeholder = { Text("Ví dụ: Bắt nạt nơi làm việc, an toàn lao động...") },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -224,7 +236,8 @@ fun WhistleblowerScreen(
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text("Tiêu đề vụ việc") },
+                            label = { Text("Tiêu đề ngắn gọn") },
+                            placeholder = { Text("VD: Chi khống tiền công tác phí quý 3") },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = TextPrimary,
@@ -237,7 +250,8 @@ fun WhistleblowerScreen(
                         OutlinedTextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text("Mô tả chi tiết bằng chứng") },
+                            label = { Text("Mô tả chi tiết") },
+                            placeholder = { Text("Sự việc gì, xảy ra khi nào, ở đâu, ai liên quan…") },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 4,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -248,14 +262,14 @@ fun WhistleblowerScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            "📎 Đính kèm tệp bằng chứng đa phương tiện:",
+                            "Đính kèm bằng chứng (không bắt buộc)",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Hỗ trợ ảnh chụp hiện trường, video, tệp ghi âm giọng nói, tài liệu mật. Ảnh sẽ được tự động tẩy sạch 100% EXIF/GPS.",
+                            "Ảnh, video, ghi âm hoặc tài liệu. Thông tin vị trí và thiết bị trong ảnh sẽ được tự động xóa trước khi gửi.",
                             fontSize = 11.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -272,7 +286,9 @@ fun WhistleblowerScreen(
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentCyan)
                             ) {
-                                Text("📷/🎥 Ảnh/Video", fontSize = 11.sp)
+                                Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Ảnh/Video", fontSize = 11.sp)
                             }
                             OutlinedButton(
                                 onClick = { filePickerLauncher.launch("audio/*") },
@@ -280,7 +296,9 @@ fun WhistleblowerScreen(
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentGreen)
                             ) {
-                                Text("🎙️ Ghi Âm", fontSize = 11.sp)
+                                Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Ghi âm", fontSize = 11.sp)
                             }
                             OutlinedButton(
                                 onClick = { filePickerLauncher.launch("*/*") },
@@ -288,14 +306,16 @@ fun WhistleblowerScreen(
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentAmber)
                             ) {
-                                Text("📄 Tài Liệu", fontSize = 11.sp)
+                                Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Tài liệu", fontSize = 11.sp)
                             }
                         }
 
                         if (attachedFiles.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                "Danh sách tệp đã chọn (${attachedFiles.size} tệp):",
+                                "Đã chọn ${attachedFiles.size} tệp",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AccentCyan
@@ -320,7 +340,16 @@ fun WhistleblowerScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.weight(1f)
                                             ) {
-                                                Text(fileItem.typeLabel, fontSize = 13.sp, modifier = Modifier.padding(end = 6.dp))
+                                                Icon(
+                                                    when (fileItem.typeLabel) {
+                                                        "Ảnh", "Video" -> Icons.Outlined.Image
+                                                        "Ghi âm" -> Icons.Outlined.Mic
+                                                        else -> Icons.Outlined.Description
+                                                    },
+                                                    contentDescription = fileItem.typeLabel,
+                                                    tint = AccentCyan,
+                                                    modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                                                )
                                                 Column {
                                                     Text(
                                                         text = fileItem.name,
@@ -330,7 +359,7 @@ fun WhistleblowerScreen(
                                                         overflow = TextOverflow.Ellipsis
                                                     )
                                                     Text(
-                                                        text = "${formatFileSize(fileItem.size)} • ${fileItem.mimeType}",
+                                                        text = "${fileItem.typeLabel} • ${formatFileSize(fileItem.size)}",
                                                         fontSize = 10.sp,
                                                         color = TextSecondary
                                                     )
@@ -340,7 +369,7 @@ fun WhistleblowerScreen(
                                                 onClick = { attachedFiles = attachedFiles.filter { it.uri != fileItem.uri } },
                                                 modifier = Modifier.size(28.dp)
                                             ) {
-                                                Text("✕", color = Color(0xFFEF4444), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                                Icon(Icons.Outlined.Close, contentDescription = "Bỏ tệp này", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
                                             }
                                         }
                                     }
@@ -353,21 +382,22 @@ fun WhistleblowerScreen(
                         Button(
                             onClick = {
                                 if (title.isNotBlank() && description.isNotBlank()) {
+                                    statusMessage = null
                                     currentStep = 2
                                 } else {
-                                    statusMessage = "Vui lòng nhập đầy đủ tiêu đề và nội dung mô tả."
+                                    statusMessage = "Vui lòng nhập tiêu đề và mô tả chi tiết trước khi tiếp tục."
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color.White)
                         ) {
-                            Text("Tiếp Tục (Bước 2: Mã Hóa & Tẩy EXIF)")
+                            Text("Tiếp tục", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
 
-            // GIAO DIỆN BƯỚC 2: MÃ HÓA & CHUẨN BỊ BẰNG CHỨNG
+            // GIAO DIỆN BƯỚC 2: XEM LẠI
             if (currentStep == 2) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -375,36 +405,43 @@ fun WhistleblowerScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "🛡️ CƠ CHẾ BẢO MẬT ĐẦU CUỐI (ECIES & EXIF STRIPPING)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentCyan
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "1. Toàn bộ tiêu đề và mô tả sẽ được mã hóa bằng ECIES P-256 bằng Public Key của Ban Thanh tra.\n" +
-                                   "2. Số lượng tệp đính kèm: ${attachedFiles.size} tệp. Toàn bộ ảnh sẽ được tẩy sạch 100% EXIF/GPS coordinates; các tệp video, âm thanh, tài liệu được băm toàn vẹn SHA-256.\n" +
-                                   "3. Một cặp khóa EC mới được sinh ra dành riêng cho hồ sơ này.",
-                            fontSize = 12.sp,
-                            color = TextSecondary,
-                            lineHeight = 18.sp
-                        )
+                        Text("Kiểm tra lại nội dung", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ReviewRow("Vấn đề", effectiveCategory)
+                        ReviewRow("Tiêu đề", title)
+                        ReviewRow("Mô tả", description, maxLines = 4)
+                        ReviewRow("Tệp đính kèm", if (attachedFiles.isEmpty()) "Không có" else "${attachedFiles.size} tệp")
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = BorderDark)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text("Thông tin của bạn được bảo vệ thế nào?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PrivacyPoint(Icons.Outlined.VisibilityOff, "Không ai biết bạn là người gửi — kể cả Ban Thanh tra và Quản trị viên.")
+                        PrivacyPoint(Icons.Outlined.Lock, "Nội dung được khóa ngay trên điện thoại, chỉ Ban Thanh tra mở được.")
+                        PrivacyPoint(Icons.Outlined.LocationOff, "Vị trí và thông tin thiết bị trong ảnh được xóa trước khi gửi.")
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        Button(
-                            onClick = { currentStep = 3 },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
-                        ) {
-                            Text("Xác Nhận & Sang Bước 3 (Ký Mù & Nộp)")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { currentStep = 1 },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Sửa lại") }
+                            Button(
+                                onClick = { currentStep = 3 },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color.White)
+                            ) {
+                                Text("Tiếp tục", fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
             }
 
-            // GIAO DIỆN BƯỚC 3: XIN CHỮ KÝ MÙ & NỘP HỒ SƠ ẨN DANH
+            // GIAO DIỆN BƯỚC 3: GỬI (ký mù + nộp ẩn danh chạy ngầm)
             if (currentStep == 3) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -412,18 +449,15 @@ fun WhistleblowerScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Sẵn sàng gửi", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "🔐 DAVID CHAUM RSA BLIND SIGNATURE",
+                            text = "Ứng dụng sẽ xác nhận bạn là nhân viên hợp lệ rồi gửi tố giác đi dưới dạng ẩn danh. " +
+                                "Hệ thống chỉ biết có một nhân viên đã gửi, không biết đó là ai.\n\n" +
+                                "Mỗi tuần bạn được gửi tối đa 5 tố giác. Sau khi gửi, bạn có thể theo dõi tiến độ trong mục \"Tố giác của tôi\".",
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentAmber
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Ứng dụng sẽ tính mã băm H (ràng buộc nội dung và ${if (attachedFiles.isNotEmpty()) "${attachedFiles.size} tệp đính kèm" else "bằng chứng ban đầu"}), nhân hệ số mù r ngẫu nhiên thành m*. Server ký mù s* và trả về mà KHÔNG THỂ BIẾT nội dung bên dưới. Sau đó ứng dụng tự bóc mù ra s và nộp ẩn danh.",
-                            fontSize = 12.sp,
                             color = TextSecondary,
-                            lineHeight = 18.sp
+                            lineHeight = 19.sp
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -451,19 +485,36 @@ fun WhistleblowerScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGreen, contentColor = Color.White),
                             enabled = !isProcessing
                         ) {
                             if (isProcessing) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                             } else {
-                                Text("🚀 KÝ MÙ & NỘP HỒ SƠ ẨN DANH NGAY", fontWeight = FontWeight.Bold)
+                                Text("Gửi tố giác", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReviewRow(label: String, value: String, maxLines: Int = 2) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(label, fontSize = 11.sp, color = TextSecondary)
+        Text(value, fontSize = 13.sp, color = TextPrimary, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun PrivacyPoint(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 4.dp)) {
+        Icon(icon, contentDescription = null, tint = AccentGreen, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text, fontSize = 12.sp, color = TextSecondary, lineHeight = 17.sp)
     }
 }
 
@@ -507,11 +558,14 @@ private suspend fun executeFullWhistleblowerFlow(
     onStatus: (String) -> Unit,
     onSuccess: (String) -> Unit
 ) = withContext(Dispatchers.IO) {
+    // Bản sao bằng chứng (đã làm sạch) ghi tạm vào cache để upload: PHẢI xóa sau khi gửi xong,
+    // nếu không bằng chứng sẽ nằm lại trên máy người tố giác.
+    val tempFiles = mutableListOf<File>()
     try {
-        onStatus("1. Đang lấy Public Key RSA & ECC của Ban Thanh tra...")
+        onStatus("Đang chuẩn bị… (1/4)")
         val keysResp = NetworkClient.identifiedApi.getOfficerPublicKeys("Bearer $token")
         if (!keysResp.isSuccessful || keysResp.body() == null) {
-            onStatus("Lỗi lấy Public Key: ${keysResp.code()}")
+            onStatus(if (keysResp.code() == 401) "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi gửi lại." else "Không thể kết nối tới hệ thống. Vui lòng thử lại sau.")
             return@withContext
         }
         val officerKeys = keysResp.body()!!
@@ -519,11 +573,14 @@ private suspend fun executeFullWhistleblowerFlow(
         val n = BigInteger(officerKeys.blindSignPub.n.removePrefix("0x"), 16)
         val officerChatPubHex = officerKeys.chatPubHex
 
-        onStatus("2. Đang sinh cặp khóa EC và mã hóa ECIES Title/Description...")
+        onStatus("Đang bảo vệ nội dung… (2/4)")
         val caseKeyPair = EciesHelper.generateEcKeyPair()
         val casePubKeyHex = EciesHelper.exportPublicKeyToHex(caseKeyPair.public)
         val casePrivKeyHex = EciesHelper.exportPrivateKeyToHex(caseKeyPair.private)
-        val caseToken = "CASE-${System.currentTimeMillis()}"
+        // Mã hồ sơ = bí mật duy nhất để người gửi theo dõi hồ sơ -> 128 bit ngẫu nhiên, không đoán được
+        // (trước đây là CASE-<thời điểm ms>, có thể dò ra nếu biết khoảng thời gian gửi).
+        val caseToken = "CASE-" + ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+            .joinToString("") { "%02x".format(it) }
 
         // Mã hóa ECIES nội dung: title|||description theo format giải mã của Ban Thanh tra
         val fullPayload = "$title|||$description".toByteArray(Charsets.UTF_8)
@@ -532,7 +589,7 @@ private suspend fun executeFullWhistleblowerFlow(
         val encDescHex = encPayload.ciphertextHex
 
         // 3. Chuẩn bị các tệp bằng chứng và tính mã băm SHA-256
-        onStatus("3. Đang xử lý các tệp đính kèm & tẩy siêu dữ liệu EXIF...")
+        onStatus("Đang xử lý tệp đính kèm… (2/4)")
         val evidenceParts = mutableListOf<MultipartBody.Part>()
         val fileHashes = mutableListOf<String>()
 
@@ -544,6 +601,7 @@ private suspend fun executeFullWhistleblowerFlow(
             val tempFile = File(context.cacheDir, "evidence_${System.currentTimeMillis()}.bin").apply {
                 writeBytes(dummyEvidence)
             }
+            tempFiles += tempFile
             val binType = "application/octet-stream".toMediaTypeOrNull()
             evidenceParts.add(
                 MultipartBody.Part.createFormData(
@@ -588,6 +646,7 @@ private suspend fun executeFullWhistleblowerFlow(
                 val tempFile = File(context.cacheDir, "ev_${index}_${System.currentTimeMillis()}_$safeBaseName").apply {
                     writeBytes(cleanBytes)
                 }
+                tempFiles += tempFile
                 fileHashes.add(fHash)
 
                 val mediaType = fileItem.mimeType.toMediaTypeOrNull() ?: "application/octet-stream".toMediaTypeOrNull()
@@ -601,7 +660,7 @@ private suspend fun executeFullWhistleblowerFlow(
             }
         }
 
-        onStatus("4. Đang tính mã băm toán học H và làm mù m*...")
+        onStatus("Đang xác nhận quyền gửi… (3/4)")
         val h = RsaBlindClient.computePayloadHash(
             category = category,
             encryptedTitle = encTitleHex,
@@ -615,40 +674,39 @@ private suspend fun executeFullWhistleblowerFlow(
         val blinding = RsaBlindClient.blindMessage(h, e, n)
         val mStarHex = blinding.mStar.toString(16)
 
-        onStatus("5. Gửi m* lên Ban Thanh tra xin chữ ký mù...")
-        val blindResp = NetworkClient.identifiedApi.requestBlindSign(
+                val blindResp = NetworkClient.identifiedApi.requestBlindSign(
             bearerToken = "Bearer $token",
             req = BlindSignRequest(blindedHash = mStarHex)
         )
         if (!blindResp.isSuccessful || blindResp.body() == null) {
-            onStatus("Lỗi xin chữ ký mù: Quota tuần đã hết hoặc từ chối.")
+            onStatus(when (blindResp.code()) {
+                429, 403 -> "Bạn đã dùng hết số lượt gửi tố giác trong tuần này. Vui lòng thử lại vào tuần sau."
+                401 -> "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi gửi lại."
+                else -> "Không thể xác nhận quyền gửi lúc này. Vui lòng thử lại sau."
+            })
             return@withContext
         }
         val rawSig = blindResp.body()!!.blindSignature.removePrefix("0x").removePrefix("0X")
         val sStar = BigInteger(rawSig, 16)
 
-        onStatus("6. Tự bóc mù thu hồi chữ ký s = (s* * r^-1) mod N...")
-        val s = RsaBlindClient.unblindSignature(sStar, blinding.r, n)
+                val s = RsaBlindClient.unblindSignature(sStar, blinding.r, n)
         val sHex = s.toString(16)
 
         // Lưu vào Secure Vault SQLCipher
         val vault = SecureVaultDatabase(context)
         val nowStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         vault.saveCase(
-            passphrase = "VAULT_MASTER_KEY_SQLCIPHER",
             item = SecureVaultDatabase.VaultCaseItem(
                 caseToken = caseToken,
                 category = category,
                 title = title,
                 casePrivateKeyHex = casePrivKeyHex,
-                casePublicKeyHex = casePubKeyHex,
-                unblindedSignature = sHex,
                 status = "SUBMITTED",
                 createdAt = nowStr
             )
         )
 
-        onStatus("7. Đang nộp ẩn danh (Zero-Knowledge) lên máy chủ...")
+        onStatus("Đang gửi tố giác… (4/4)")
         val textType = "text/plain".toMediaTypeOrNull()
 
         val submitResp = NetworkClient.anonymousApi.submitCase(
@@ -665,14 +723,25 @@ private suspend fun executeFullWhistleblowerFlow(
         )
 
         if (submitResp.isSuccessful) {
-            onStatus("✅ Nộp hồ sơ tố giác ẩn danh thành công! Token: $caseToken")
+            onStatus("Đã gửi tố giác thành công.")
             withContext(Dispatchers.Main) {
                 onSuccess(caseToken)
             }
         } else {
-            onStatus("Lỗi nộp hồ sơ ẩn danh: ${submitResp.errorBody()?.string()}")
+            onStatus("Gửi tố giác không thành công. Vui lòng thử lại.")
         }
     } catch (e: Exception) {
-        onStatus("Lỗi trong quá trình xử lý: ${e.localizedMessage}")
+        onStatus(DisplayText.networkError(e))
+    } finally {
+        tempFiles.forEach { f ->
+            try {
+                if (f.exists()) {
+                    f.writeBytes(ByteArray(f.length().toInt()))  // ghi đè trước khi xóa
+                    f.delete()
+                }
+            } catch (_: Exception) {
+                f.delete()
+            }
+        }
     }
 }

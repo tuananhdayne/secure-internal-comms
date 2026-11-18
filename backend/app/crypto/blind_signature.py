@@ -4,6 +4,24 @@ from typing import List, Tuple
 from app.crypto.key_manager import key_manager
 
 
+def parse_rsa_int(raw: str) -> int:
+    """Đọc số nguyên lớn (chữ ký s, giá trị làm mù m*) do client gửi lên.
+
+    Chấp nhận: "0x..." (hex), chuỗi có chữ a-f (hex không tiền tố), hoặc chuỗi thập phân.
+    Lưu ý: một chuỗi hex KHÔNG tiền tố mà chỉ gồm chữ số 0-9 sẽ bị hiểu là thập phân —
+    client nên luôn gửi kèm "0x" (server trả chữ ký mù dạng hex(...) có "0x").
+
+    Raises:
+        ValueError: chuỗi rỗng hoặc sai định dạng.
+    """
+    value = (raw or "").strip()
+    if not value:
+        raise ValueError("Giá trị số nguyên rỗng.")
+    if value[:2].lower() == "0x" or any(c in "abcdefABCDEF" for c in value):
+        return int(value, 16)
+    return int(value)
+
+
 class BlindSignatureEngine:
     """Thực thi thuật toán Chữ ký mù RSA của David Chaum (RSA Blind Signature).
 

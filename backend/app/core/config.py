@@ -6,6 +6,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ROOT_DIR = BASE_DIR.parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
 
+# Các khóa JWT đã lộ công khai trong repo -> chỉ dùng cho demo, server sẽ cảnh báo khi khởi động.
+INSECURE_JWT_SECRETS = {
+    "secure_internal_comms_secret_key_2026_defense",
+    "change_this_to_a_secure_random_secret_in_production",
+}
+
 
 class Settings(BaseSettings):
     """Cấu hình toàn hệ thống Secure Internal Comms & Whistleblower Engine."""
@@ -28,6 +34,30 @@ class Settings(BaseSettings):
     KEYS_DIR: str = str(BASE_DIR / "keys")
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
 
+    # Giới hạn tệp bằng chứng cho mỗi hồ sơ (chống làm đầy đĩa / RAM)
+    MAX_EVIDENCE_FILE_MB: int = 50
+    MAX_EVIDENCE_FILES: int = 10
+
+    # CORS: danh sách origin cách nhau bởi dấu phẩy. Web Admin dùng cùng origin và app Android
+    # không bị CORS chi phối, nên mặc định "*" nhưng KHÔNG gửi kèm cookie/credentials.
+    CORS_ORIGINS: str = "*"
+
+    # Giao diện Web Admin
+    # Hiển thị hộp "tài khoản dùng thử" trên trang đăng nhập — chỉ bật khi demo/phát triển,
+    # để False trên bản bàn giao.
+    SHOW_DEMO_ACCOUNTS: bool = False
+    # Múi giờ hiển thị thời gian trên giao diện (CSDL lưu UTC).
+    DISPLAY_TIMEZONE: str = "Asia/Ho_Chi_Minh"
+
+    # Tài liệu API (/docs, /redoc, /api/v1/openapi.json): tắt trên bản bàn giao để không lộ bản đồ API.
+    ENABLE_API_DOCS: bool = False
+
+    # Chống dò mật khẩu: sau LOGIN_MAX_FAILURES lần sai trong LOGIN_WINDOW_MINUTES,
+    # tạm khóa đăng nhập tài khoản đó LOGIN_LOCKOUT_MINUTES phút (áp dụng cho API và Web Admin).
+    LOGIN_MAX_FAILURES: int = 5
+    LOGIN_WINDOW_MINUTES: int = 15
+    LOGIN_LOCKOUT_MINUTES: int = 15
+
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
@@ -38,6 +68,15 @@ class Settings(BaseSettings):
         if self.DATABASE_URL.startswith("sqlite:///./"):
             rel_db = self.DATABASE_URL.removeprefix("sqlite:///./")
             self.DATABASE_URL = f"sqlite:///{BASE_DIR / rel_db}"
+
+    @property
+    def uses_insecure_jwt_secret(self) -> bool:
+        """True nếu JWT_SECRET_KEY là giá trị mặc định công khai trong mã nguồn / .env.example."""
+        return self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS or len(self.JWT_SECRET_KEY) < 32
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     @property
     def keys_path(self) -> Path:

@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.models.identified import User, Post, Comment
 from app.schemas.posts import PostCreate, PostResponse, PostDetailResponse, CommentCreate, CommentResponse
-from app.api.deps import get_current_user, require_role
+from app.api.deps import require_permission
+from app.core.permissions import Perm
 
 router = APIRouter(tags=["Posts & Newsfeed"])
 
@@ -15,7 +16,7 @@ def list_posts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Perm.APP_ACCESS)),
     db: Session = Depends(get_db)
 ) -> List[PostDetailResponse]:
     """Xem danh sách bản tin nội bộ (Hỗ trợ phân loại và ghim bài viết lên đầu)."""
@@ -42,10 +43,10 @@ def list_posts(
 @router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 def create_post(
     post_in: PostCreate,
-    current_user: User = Depends(require_role(["BOARD_DIRECTOR", "SYSTEM_ADMIN"])),
+    current_user: User = Depends(require_permission(Perm.POST_MANAGE)),
     db: Session = Depends(get_db)
 ) -> PostResponse:
-    """Đăng bài viết mới trên mạng truyền thông nội bộ (Dành cho Ban Giám Đốc và Quản trị viên)."""
+    """Đăng bài viết mới trên mạng truyền thông nội bộ (chỉ Quản trị viên — xem app/core/permissions.py)."""
     new_post = Post(
         author_id=current_user.id,
         title=post_in.title.strip(),
@@ -66,7 +67,7 @@ def create_post(
 @router.get("/{post_id}", response_model=PostDetailResponse)
 def get_post(
     post_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Perm.APP_ACCESS)),
     db: Session = Depends(get_db)
 ) -> PostDetailResponse:
     """Xem chi tiết bài viết kèm danh sách bình luận."""
@@ -95,7 +96,7 @@ def get_post(
 def create_comment(
     post_id: int,
     comment_in: CommentCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Perm.FEED_COMMENT)),
     db: Session = Depends(get_db)
 ) -> CommentResponse:
     """Thêm bình luận vào bài viết nội bộ."""

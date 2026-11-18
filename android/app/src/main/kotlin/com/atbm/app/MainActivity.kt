@@ -34,6 +34,10 @@ class MainActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_SECURE
         )
 
+        // Dọn bản sao bằng chứng còn sót trong cache (các bản cài cũ không xóa sau khi gửi)
+        cacheDir.listFiles { f -> f.name.startsWith("ev_") || f.name.startsWith("evidence") }
+            ?.forEach { it.delete() }
+
         // Khởi tạo Notification Channel
         com.atbm.app.domain.notification.CaseNotificationManager.initChannel(this)
 

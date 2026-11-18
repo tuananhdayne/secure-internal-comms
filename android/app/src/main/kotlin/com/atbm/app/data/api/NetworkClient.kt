@@ -1,7 +1,7 @@
 package com.atbm.app.data.api
 
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -29,23 +29,30 @@ object NetworkClient {
     }
 
     /**
-     * Cập nhật URL máy chủ linh hoạt khi kết nối qua LAN / Thiết bị thật.
+     * Cập nhật URL máy chủ (LAN / thiết bị thật). Chỉ chấp nhận HTTPS: mọi kết nối bắt buộc qua TLS
+     * (network_security_config.xml cũng cấm cleartext ở tầng hệ điều hành).
+     * @return false nếu URL không hợp lệ hoặc không phải https:// (giữ nguyên URL cũ).
      */
-    fun updateBaseUrl(newUrl: String) {
-        val formatted = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+    fun updateBaseUrl(newUrl: String): Boolean {
+        val trimmed = newUrl.trim()
+        if (!isValidHttpsUrl(trimmed)) return false
+        val formatted = if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+        if (formatted == currentBaseUrl) return true
         currentBaseUrl = formatted
         val (iApi, aApi) = buildApis(formatted)
         identifiedApi = iApi
         anonymousApi = aApi
+        return true
     }
 
     fun getBaseUrl(): String = currentBaseUrl
 
-    private fun buildApis(baseUrl: String): Pair<IdentifiedApi, AnonymousApi> {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
+    fun isValidHttpsUrl(url: String): Boolean {
+        val parsed = url.trim().toHttpUrlOrNull() ?: return false
+        return parsed.isHttps && parsed.host.isNotBlank()
+    }
 
+    private fun buildApis(baseUrl: String): Pair<IdentifiedApi, AnonymousApi> {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -53,7 +60,7 @@ object NetworkClient {
                     .build()
                 chain.proceed(request)
             }
-            .addInterceptor(logging)
+            // KHÔNG gắn HttpLoggingInterceptor: log BODY sẽ ghi mật khẩu, JWT và dữ liệu hồ sơ ra logcat.
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)

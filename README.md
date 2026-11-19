@@ -174,17 +174,14 @@ pip install -r requirements.txt
 # 4. Nạp dữ liệu mẫu (Tài khoản mẫu, bản tin nội bộ & hồ sơ mẫu)
 python -m app.db.seed
 
-# 5. Khởi chạy máy chủ FastAPI (Port 8000)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --no-access-log
-
-# 6. Mở kết nối Internet từ xa qua Ngrok (cho ứng dụng di động 4G/5G)
-ngrok http --url=chas-unshaped-jacalyn.ngrok-free.dev 8000
+# 5. Khởi chạy máy chủ qua HTTPS (khuyến nghị; app Android chỉ kết nối https://)
+cd .. && ./dev.sh certs && ./dev.sh run-https     # https://localhost:8443
 ```
 
-* **Cổng Quản trị & Thanh tra Web (Local):** [http://localhost:8000/admin/login](http://localhost:8000/admin/login)
-* **Cổng Quản trị & Thanh tra Web (Ngrok Online):** [https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login](https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login)
-* **Tài liệu Swagger API Interactive:** [http://localhost:8000/docs](http://localhost:8000/docs) (hoặc [https://chas-unshaped-jacalyn.ngrok-free.dev/docs](https://chas-unshaped-jacalyn.ngrok-free.dev/docs))
-* **Tài liệu Redoc API:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+* **Cổng Quản trị & Thanh tra Web:** `https://localhost:8443/admin/login`
+* **Tài liệu API (Swagger/Redoc):** tắt mặc định trên bản bàn giao; bật khi phát triển bằng `ENABLE_API_DOCS=true` → `https://localhost:8443/docs`
+* **App Android:** địa chỉ máy chủ đặt lúc build — `./gradlew assembleRelease -Patbm.serverUrl=https://api.ten-mien-cua-ban.vn/` (mặc định `https://10.0.2.2:8443/` cho Emulator). Không dùng dịch vụ tunnel công cộng (ngrok…) cho bản triển khai.
+* **Giao thức nộp hồ sơ / bộ dữ liệu kiểm thử dùng chung:** [`docs/protocol.md`](docs/protocol.md)
 
 ---
 

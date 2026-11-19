@@ -47,14 +47,15 @@ curl --cacert certs/ca.crt https://localhost:8443/health
 - `AndroidManifest.xml`: `usesCleartextTraffic="false"` + `networkSecurityConfig="@xml/network_security_config"`.
 - `res/xml/network_security_config.xml`: cấm cleartext toàn ứng dụng; với host backend
   (10.0.2.2 / localhost / 127.0.0.1) **chỉ** tin CA nội bộ `res/raw/atbm_dev_ca.pem` → proxy chặn bắt
-  (Burp/mitmproxy) không giải mã được. Các domain khác (vd. ngrok) dùng kho CA hệ thống.
+  (Burp/mitmproxy) không giải mã được. Các domain khác (máy chủ thuê có chứng chỉ công khai, vd. Let's Encrypt) dùng kho CA hệ thống.
 - `NetworkClient.updateBaseUrl()` từ chối mọi địa chỉ không phải `https://`; màn hình đăng nhập báo
   "Địa chỉ máy chủ không hợp lệ" nếu nhập `http://`.
 - Đã gỡ `HttpLoggingInterceptor` (trước đây log BODY ghi mật khẩu/JWT ra logcat).
-- Địa chỉ máy chủ: mặc định domain ngrok (HTTPS công khai). Emulator + backend local: mở
-  **Cài đặt kết nối** ở màn đăng nhập, nhập `https://10.0.2.2:8443`. Máy thật qua LAN: sinh chứng chỉ
-  kèm IP (`./dev.sh certs 192.168.1.15`), build lại app, nhập `https://192.168.1.15:8443`
-  (và thêm IP đó vào `domain-config` nếu muốn áp dụng chỉ-tin-CA-nội-bộ).
+- Địa chỉ máy chủ: đặt lúc build bằng `./gradlew assembleRelease -Patbm.serverUrl=https://api.ten-mien-cua-ban.vn/`
+  (mặc định `https://10.0.2.2:8443/` cho Emulator + backend local). Mục **Cài đặt kết nối** ở màn đăng nhập
+  vẫn cho đổi tạm thời (chỉ chấp nhận https://).
+- Khi thuê máy chủ: dùng chứng chỉ công khai (Let's Encrypt…) cho tên miền — app tin theo kho CA hệ thống,
+  không cần nhúng CA nội bộ. Nếu muốn ghim chứng chỉ, thêm `<domain-config>` cho tên miền đó.
 
 Đã kiểm thử (2026-11-18, Pixel 8 emulator): `http://` bị chặn; đăng nhập, gửi tố giác, nhận phản hồi
 qua `https://10.0.2.2:8443`. Server chỉ bắt tay TLS 1.2/1.3 với ECDHE + AES-GCM, từ chối CBC và HTTP thuần

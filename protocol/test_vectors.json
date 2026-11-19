@@ -1,0 +1,86 @@
+{
+  "_note": "Sinh bởi backend/scripts/gen_protocol_vectors.py — KHÓA THỬ, không dùng cho hệ thống thật.",
+  "payload_hash": {
+    "rsa_n_hex": "9d6531918d87b5f987f50e7a3a261b617e240e76148ee7152245dca44c877ca430a775959873c7d332f8523f9d94b57c2dbfd0de6fd8aaaf528c86c3d03c533cf905e9eab2e54bfc262a74cc39257a9380738678a8ce36eac2d34e012bc000e0c69924089711c6a137a10a5aa69602c5693aad9c67f51931e23c6abea7579ea3c11006531729035034bb57a41c3b28855708c89f5813c73dd149d87a0b52d7fd53f68d4f8055fcb367a8c5819cf76b38dfb44cbe5ffe96b78bf9a2b77646e4847fb4ee43fae4a067eac71dbd450f821edafe5ac150940bde116e9023c9a1478b2d90482dbb677f3dd95dc782460daba155e52111f05b40458efe7ec2be39d223",
+    "cases": [
+      {
+        "name": "cơ bản",
+        "category": "Tham nhũng tài chính",
+        "encrypted_title": "a1b2c3",
+        "encrypted_description": "d4e5f6d4e5f6d4e5f6d4e5f6d4e5f6d4e5f6d4e5f6d4e5f6",
+        "case_token": "CASE-0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+        "case_public_key": "04abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+        "evidence_file_hashes": [
+          "d550b7a2de4adda61a6341d1d23b5f11bd59c0e7d35d2ce4de04efddd6d44591",
+          "cd8fa691b9107aabe07958624d13482cc84907b5a9851dd49ad33b33f23f44e0"
+        ],
+        "expected_h_hex": "16540bfe4939f258b93a643da5727c67bb430db748c49393b798dcefeab788e2"
+      },
+      {
+        "name": "khoảng trắng hai đầu + tiếng Việt (phải trim)",
+        "category": "  Khác: Bắt nạt nơi làm việc ",
+        "encrypted_title": " aa ",
+        "encrypted_description": "bb\n",
+        "case_token": " CASE-1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e ",
+        "case_public_key": "04cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd ",
+        "evidence_file_hashes": [
+          " 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+        ],
+        "expected_h_hex": "8b0e444e826bc30c0c1573b7b6e229ba137679ac50049e5c0967a2fb3842c607"
+      },
+      {
+        "name": "không có tệp",
+        "category": "Gian lận đấu thầu",
+        "encrypted_title": "00",
+        "encrypted_description": "11",
+        "case_token": "CASE-2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d",
+        "case_public_key": "04efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "evidence_file_hashes": [],
+        "expected_h_hex": "6bfc438879ce224bde0655eea660f8b0d1204fd7eceb673310f8f1a170ea7a24"
+      }
+    ]
+  },
+  "blind_signature": {
+    "n_hex": "9d6531918d87b5f987f50e7a3a261b617e240e76148ee7152245dca44c877ca430a775959873c7d332f8523f9d94b57c2dbfd0de6fd8aaaf528c86c3d03c533cf905e9eab2e54bfc262a74cc39257a9380738678a8ce36eac2d34e012bc000e0c69924089711c6a137a10a5aa69602c5693aad9c67f51931e23c6abea7579ea3c11006531729035034bb57a41c3b28855708c89f5813c73dd149d87a0b52d7fd53f68d4f8055fcb367a8c5819cf76b38dfb44cbe5ffe96b78bf9a2b77646e4847fb4ee43fae4a067eac71dbd450f821edafe5ac150940bde116e9023c9a1478b2d90482dbb677f3dd95dc782460daba155e52111f05b40458efe7ec2be39d223",
+    "e_hex": "10001",
+    "h_hex": "16540bfe4939f258b93a643da5727c67bb430db748c49393b798dcefeab788e2",
+    "r_hex": "3db5f92d5929afce24a3c7327a2dde8880f8d77169c508d030ef5ff3b83241977fd3a3bd167c3a23bb33a4d610e49f56fa485dec792c1395b27e0d25e5b89ba9b5e7bfa589ade6fe73a044336c6b097cb51fb893e395f36407a330ff25cacebb3a1d321444b433b1607964052ba13f34c4f790f76d6fd5ec23223077c67615d8577b7b7c606451cd68064e19c69c514b499974e91bcff0f2bf57f8d885fcf5deada50715606439a860b14fb4516dbff497fabf5a8efc7ee65db6167ad4c148619767d6da4544938cd4b5377cccf9234c2e4f772ad552a27bf05f4ce5d7cf6bfd8835f072d5249c1602f91b75a26596150d812886c5478d439226e9cff36e8fe1",
+    "m_star_hex": "1e422aecc94a19cd07737a23d4204e774bc7c9a58ee5cdc25a38651b71e3a66cf39b18172015bd8aefd3c3a48813f1df513db5e58f0d18dbcca3775e568baa86ae785f6b55f2e50541bb76db33841fdd40f34b73a4b89eb43acc9ac6217371fefb38dce6c55d84c4a055cfb3d35a9be51da5cbf66a0c2e0d040bf8fb06b21a500a88da1d1fb2778525a9cab7bb4d553e8e11ad878d7de1afcd31304721397701e3440b53c362da0b9de0b924b1272cb4468503971d63f17eb7fa41b042764e2bfc3b3f85b1bd02d74ffffe6a03827147c556f481b99842b5e83ae0ad6861abdf5dbcefbd85ee8386bf51e54d856522ebcbdb15bd8e1e840847b7c469620eacb6",
+    "s_star_hex": "1c1f3630df54ccdb316926be6126bb73bc0bcd8948f10b66e47c1dc257cee4c7e28c1d169a2c384a02085943d3bc63ca5e9596e5009fe5555d82695986e223b79bada47683f1ac08959e102a71335be04ff886b24bc5dbb45a3f24ff1307c8d196233170c2c6ef808b7867263390a74e8cbc0f2bc30daf2a0aa10a2447243f8866093c8bbcd4335c08c076586891eabdd6cf9f495b6cef1c179ac54093300311c6aca7ae8c5e0261e3c1f8cd5a61ba07f27f4145c16b03952095110a75f3767ae67c02baa2f88fac2c6046b984ee3ae1158fc659635e3359de59ee1592f43009d2c9fc7ccd01a77d722113d2580ed8a9cf25b40fda74c7c92e3f1a621362711b",
+    "s_hex": "88ed78a9b7a8b71c69423fc0afd72c54ffeca59f4df32a8b90484d5798e19b9292db825fb0fb2a7be155ab108865c8e73437972431162cebf80398f13c78c7255bb38e8290b116082d9b1e3cdad38754e791de74f0f45a8bf54dabbce66352f292e3adbceaae7c9670909f64d9a467b1791a77986792cd66b86d4043387156f9cc7d5c403b3bd9384a3913bb5470f50ff7714d676289782a95ca44a9a52c00c671e8d5021527359b8b34fb24624f275478d1261566e6c02240bc9d2bbe99eb4f6382274c7906964cee22d3af35b7c31f25758814fd8259d4088dd33ad6bbf40321f8b5286296753d885a938a43f41ce222f7a7f8570fadb6f1c10a28e4f54415"
+  },
+  "ecies": {
+    "recipient_private_pkcs8_hex": "308187020100301306072a8648ce3d020106082a8648ce3d030107046d306b0201010420c6df267471729455a69641ae8c3943d6f3a174b1272a819b565c5111eb1d3648a14403420004d03618a85dfdd924d4fffaebbfeedbbfff6fafdc7d46123ce56535dc34ed489bd6bbf1b7a1940862187533f1c5da529219668d731c7858ae0f3517921e6b20ff",
+    "recipient_public_hex": "04d03618a85dfdd924d4fffaebbfeedbbfff6fafdc7d46123ce56535dc34ed489bd6bbf1b7a1940862187533f1c5da529219668d731c7858ae0f3517921e6b20ff",
+    "hkdf_info": "atbm-ecies-aes256gcm",
+    "cases": [
+      {
+        "plaintext_utf8": "Tiêu đề|||Mô tả chi tiết có dấu tiếng Việt",
+        "ephemeral_public_key": "04eeaf036da191a4f19f554c39d1acffb4c461a16efc4ab07006f32e63acb89dda2444633d1bc3825708ea6369052781ee61fc63ce6f265beeb1fcc02936e714dc",
+        "iv": "940fcd4a4ab88aa2284676d9",
+        "ciphertext": "b017dabc360df7e566d3f7b3dc35fef3dcb6bbc34dd2236ea389fbaf7cd41bf5d8488f68b7f72a8a6b2a5f9dc7277cd5af005a0cec402552ac92",
+        "auth_tag": "17e4d7382faa856e9be6e72968cba68e"
+      },
+      {
+        "plaintext_utf8": "",
+        "ephemeral_public_key": "04be7c0198e1626381108d4798a4d1df3a33ef083587882c2186678e614caa8d9d77fcecc3dda896659e64448a0cbd33421a3ae07df33c45e76a0cbb271f246ff4",
+        "iv": "b4dc964a9cd6a181fb02cb56",
+        "ciphertext": "",
+        "auth_tag": "fee63c4c10ebfd48eca3a9b172b2a4c0"
+      },
+      {
+        "plaintext_utf8": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "ephemeral_public_key": "04eb415bd93703da181c2bf498661bf0d19c7b66a47f347d2deff24de440736e7de7b769ee0cd902d84248b23c5661b5a3fdd07636ee678f3555c9e769a0d50f39",
+        "iv": "dec0ba4471b23a13253132b4",
+        "ciphertext": "fe4c821d91c346ec2ba5583ae6dc5dc06eb3ae595a7acc45aacfa42c0d31b8cc35e873bab04844bc3398527cfbe0560330a982d9b6cca3808b87cc2641e7c06e07cb2d791494a12276143e9f8a68df585f784373bc2e467e1f1404cc7fda5af6a77574e2047dbdadb201ca5ca9e5e8b9c1fa5a0ec44204d0ac4af4b96cdbf3272ba33868ce0ca79ace31fad3ce0f882432fc469aa03129adfc17efbe03e794bbe631ca5b309f49f54180f33a0be004a8802b46c5bcb6c59e7957cdfcec9fb73d9a99f71b73e9bca35fcaf3b5aee1df76a513badea8f18d6b8912093138f63e12aef39bd64aac108b0ef0bd7d9699a661ea9302e677348f3b4cd1fb4d502a66c8ba1963b4ca0e9431a58149a4940230d535df53306e8ce5aaee9197f54f4077a39f755c30a9bf15954fa5e6aa218d775c4a18cf40fbe97e85924e32c7c0e8176019ab8917e8e5378e97ac3a3a5d2c4248b91ffbe6655f288b5f695b674ca352ba15c5da07a95340bba7a15f5885efba398f42e733aea10e877f27617d95ed90c33110e22f4c82dc0dc65b22acb9a4628816f50ff8ecd7565c3dba1c300b1db5b9554aa0402f3448ff72d876896adeb8a82e6aaf9e313683a5095ea59eefef4e8b40242c16ba7093fa4f196344854a4dcfd024d43e1251069e8d7cfe9d301f2b88883ffad4c082041c4cdf738dd9504da1acb2f012cf140ac5a0255d2883a330565855e82648dc0f87c08bf94c2afb6d09e1f5448de145a6460d6b4b8a87ce792b2574696d6ddc5740dda7e69f7d10ac286ff61f24535d94ca0124436713152b66e249ba0d0c0750ac87c4dd2527b7bce3ca8fd815b2108ff6355b171f4ca11dc803e8566b9104d6d4b530d1adc992cf594714b9ff4ee75de45d2d88f5f457b1cbb88dc41c0f31fbfaab97c6fe945fd060e4b20b2bc713bb4b3f1ce1c16a7416214858a699de8a44187b4c2487c270fb175b19411c27eb27febf7ec10294417f0c4615fadde06ec717d54272260066393649cf0df69c4a935925eddad33666ebbf73c80f928b1cf72e94fa05f69190191b3bf5f3066f535bc9082ee2b2f09dd1c7d237075b5a5c0bb4c865d360d6cf7dd76dca79e257421f578cdd62960e826256f8f9a179df1be818c98171ace0b0c8696336487a8ad5df846735e3dabc1475bd9703c0fd3a3c70600e7fee63019ee5ad06e2da744810410d07a2802048275c7217ebdb85820232140285e09c71d446823f07960e9fee3f1f104b888b40f0eefba2bd0a7fabdbc4a0c8bbf910a8f79eb5bb493f697dbaf3c8bba1bb10aec59c72e63ea9c20f7f76343d7c660f9f8889b268c4f90525a4230a5c9775c4a09b22f77050e4d6b15483da7446fd94263e44eac2f656bbfc318407c77380abebc159ea615c23c90833e510",
+        "auth_tag": "8cd156eb3a26071991dda9e659abf278"
+      }
+    ]
+  },
+  "ecdsa": {
+    "public_hex": "04d03618a85dfdd924d4fffaebbfeedbbfff6fafdc7d46123ce56535dc34ed489bd6bbf1b7a1940862187533f1c5da529219668d731c7858ae0f3517921e6b20ff",
+    "private_pkcs8_hex": "308187020100301306072a8648ce3d020106082a8648ce3d030107046d306b0201010420c6df267471729455a69641ae8c3943d6f3a174b1272a819b565c5111eb1d3648a14403420004d03618a85dfdd924d4fffaebbfeedbbfff6fafdc7d46123ce56535dc34ed489bd6bbf1b7a1940862187533f1c5da529219668d731c7858ae0f3517921e6b20ff",
+    "message_utf8": "b017dabc360df7e566d3f7b3dc35fef3dcb6bbc34dd2236ea389fbaf7cd41bf5d8488f68b7f72a8a6b2a5f9dc7277cd5af005a0cec402552ac92",
+    "signature_der_hex": "3046022100c376ad5304695352f429bf5df9e92f187a042aa831a3163624e9b4162cb5ff3e022100c1dfc8a227f09d9e601c29c85e98cfaf0d5dbe524b492f71c97f6da9adbd8817"
+  }
+}

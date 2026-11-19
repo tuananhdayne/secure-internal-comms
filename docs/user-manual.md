@@ -79,7 +79,8 @@ Nhấn nút **Gửi tố giác** ở góc dưới bên phải màn hình bảng 
 ### 1.5. Xóa nhanh dữ liệu trên máy
 Dùng khi bạn cần xóa ngay mọi dấu vết tố giác trên điện thoại (ví dụ: bị ép buộc mở máy).
 1. Trong **Tố giác của tôi**, nhấn biểu tượng **thùng rác đỏ** ở góc trên.
-2. Nhập **mã khẩn cấp** do bộ phận phụ trách cung cấp khi bàn giao (mặc định: `999999`).
+2. Nhập **mã khẩn cấp**. Mã mặc định là `999999` — **hãy đổi ngay** bằng biểu tượng **chìa khóa/mật khẩu**
+   cạnh nút xóa: nhập mã hiện tại, rồi mã mới 6–8 chữ số mà chỉ bạn biết.
 3. Nhấn **Xóa dữ liệu**. Toàn bộ tố giác đã lưu trên máy bị xóa vĩnh viễn, ứng dụng quay về
    màn hình đăng nhập. Thao tác **không thể khôi phục**.
 

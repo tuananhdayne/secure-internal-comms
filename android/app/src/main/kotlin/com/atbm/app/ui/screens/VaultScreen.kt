@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,6 +47,11 @@ fun VaultScreen(
     var serverCaseDetail by remember { mutableStateOf<CaseDetailResponse?>(null) }
     var chatInput by remember { mutableStateOf("") }
     var showPanicDialog by remember { mutableStateOf(false) }
+    var showCodeDialog by remember { mutableStateOf(false) }
+    var codeCurrent by remember { mutableStateOf("") }
+    var codeNew by remember { mutableStateOf("") }
+    var codeConfirm by remember { mutableStateOf("") }
+    var codeError by remember { mutableStateOf<String?>(null) }
     var panicPinInput by remember { mutableStateOf("") }
     var panicPinError by remember { mutableStateOf(false) }
     var chatError by remember { mutableStateOf<String?>(null) }
@@ -92,6 +98,9 @@ fun VaultScreen(
                         Icon(Icons.Outlined.Refresh, contentDescription = "Làm mới", tint = TextPrimary)
                     }
                     // Nút Kích hoạt Panic PIN Khẩn cấp
+                    IconButton(onClick = { showCodeDialog = true; codeError = null }) {
+                        Icon(Icons.Outlined.Password, contentDescription = "Đặt mã khẩn cấp", tint = TextPrimary)
+                    }
                     IconButton(onClick = { showPanicDialog = true }) {
                         Icon(Icons.Outlined.DeleteForever, contentDescription = "Xóa nhanh dữ liệu", tint = AccentRed)
                     }
@@ -392,6 +401,64 @@ fun VaultScreen(
                 )
             }
 
+            // ĐẶT / ĐỔI MÃ KHẨN CẤP
+            if (showCodeDialog) {
+                val isCustom = com.atbm.app.data.security.EmergencyCode.isCustom(context)
+                val close = {
+                    showCodeDialog = false; codeCurrent = ""; codeNew = ""; codeConfirm = ""; codeError = null
+                }
+                val pinField: @Composable (String, String, (String) -> Unit) -> Unit = { label, value, onChange ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onChange(it.filter(Char::isDigit).take(8)); codeError = null },
+                        label = { Text(label) },
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary)
+                    )
+                }
+                AlertDialog(
+                    onDismissRequest = close,
+                    title = { Text("Mã khẩn cấp", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text(
+                                if (isCustom) "Đổi mã dùng để xóa nhanh dữ liệu trên máy."
+                                else "Bạn đang dùng mã mặc định. Hãy đặt mã riêng (6–8 chữ số) mà chỉ bạn biết.",
+                                fontSize = 12.sp, color = TextSecondary
+                            )
+                            pinField(if (isCustom) "Mã hiện tại" else "Mã hiện tại (mặc định trong hướng dẫn)", codeCurrent) { codeCurrent = it }
+                            pinField("Mã mới", codeNew) { codeNew = it }
+                            pinField("Nhập lại mã mới", codeConfirm) { codeConfirm = it }
+                            if (codeError != null) {
+                                Text(codeError ?: "", color = AccentRed, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                codeError = when {
+                                    !com.atbm.app.data.security.EmergencyCode.isValidFormat(codeNew) -> "Mã mới phải gồm 6–8 chữ số."
+                                    codeNew != codeConfirm -> "Hai lần nhập mã mới không khớp."
+                                    !com.atbm.app.data.security.EmergencyCode.change(context, codeCurrent, codeNew) -> "Mã hiện tại không đúng."
+                                    else -> null
+                                }
+                                if (codeError == null) {
+                                    close()
+                                    android.widget.Toast.makeText(context, "Đã lưu mã khẩn cấp mới.", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color.White)
+                        ) { Text("Lưu") }
+                    },
+                    dismissButton = { OutlinedButton(onClick = close) { Text("Hủy") } },
+                    containerColor = CardDark
+                )
+            }
+
             // PANIC PIN DIALOG
             if (showPanicDialog) {
                 AlertDialog(
@@ -400,7 +467,7 @@ fun VaultScreen(
                         Button(
                             onClick = {
                                 panicPinError = false
-                                if (panicPinInput == "999999") {
+                                if (com.atbm.app.data.security.EmergencyCode.matches(context, panicPinInput)) {
                                     // KÍCH HOẠT TIÊU HỦY DỮ LIỆU KHẨN CẤP
                                     val vault = SecureVaultDatabase(context)
                                     vault.emergencyWipe()

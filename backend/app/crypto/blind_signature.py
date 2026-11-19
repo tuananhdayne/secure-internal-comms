@@ -1,6 +1,6 @@
 import hashlib
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from app.crypto.key_manager import key_manager
 
 
@@ -38,31 +38,36 @@ class BlindSignatureEngine:
         encrypted_description: str,
         case_token: str,
         case_public_key: str,
-        evidence_file_hashes: List[str]
+        evidence_file_hashes: List[str],
+        n: Optional[int] = None,
     ) -> int:
         """Tính mã băm H ràng buộc toàn vẹn cả nội dung đã mã hóa và danh sách file bằng chứng.
 
-        H = SHA256(Category || EncTitle || EncDesc || Case_Token || Case_PubKey || Hash(File_1) || ... || Hash(File_k)) mod N
+        H = SHA256(Category | EncTitle | EncDesc | Case_Token | Case_PubKey | Hash(File_1) | ... ) mod N
+        - Mỗi trường được .strip() rồi mã hóa UTF-8; các mã băm tệp được sắp xếp tăng dần.
+        - PHẢI khớp từng byte với RsaBlindClient.computePayloadHash (Android). Bộ dữ liệu kiểm thử
+          dùng chung: protocol/test_vectors.json (tests/blackbox/test_protocol_vectors.py + CryptoUnitTest.kt).
         """
         hasher = hashlib.sha256()
-        hasher.update(category.encode("utf-8"))
+        hasher.update(category.strip().encode("utf-8"))
         hasher.update(b"|")
-        hasher.update(encrypted_title.encode("utf-8"))
+        hasher.update(encrypted_title.strip().encode("utf-8"))
         hasher.update(b"|")
-        hasher.update(encrypted_description.encode("utf-8"))
+        hasher.update(encrypted_description.strip().encode("utf-8"))
         hasher.update(b"|")
-        hasher.update(case_token.encode("utf-8"))
+        hasher.update(case_token.strip().encode("utf-8"))
         hasher.update(b"|")
-        hasher.update(case_public_key.encode("utf-8"))
+        hasher.update(case_public_key.strip().encode("utf-8"))
 
         for file_hash in sorted(evidence_file_hashes):
             hasher.update(b"|")
-            hasher.update(file_hash.encode("utf-8"))
+            hasher.update(file_hash.strip().encode("utf-8"))
 
         digest_bytes = hasher.digest()
         h_int = int.from_bytes(digest_bytes, byteorder="big")
 
-        _, n = key_manager.rsa_public_numbers
+        if n is None:
+            _, n = key_manager.rsa_public_numbers
         return h_int % n
 
     @staticmethod

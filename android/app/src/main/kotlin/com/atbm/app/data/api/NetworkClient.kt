@@ -11,10 +11,11 @@ import java.util.concurrent.TimeUnit
  */
 object NetworkClient {
 
-    // Ngrok static domain cấu hình sẵn cho kết nối Internet / 4G / Wi-Fi từ xa
-    private const val DEFAULT_NGROK_URL = "https://chas-unshaped-jacalyn.ngrok-free.dev/"
-    
-    private var currentBaseUrl: String = DEFAULT_NGROK_URL
+    // Địa chỉ máy chủ lấy từ cấu hình lúc build (gradle property `atbm.serverUrl`, xem app/build.gradle.kts).
+    // Không dùng dịch vụ tunnel công cộng (ngrok...) để tránh lộ metadata kết nối cho bên thứ ba.
+    private val DEFAULT_SERVER_URL: String = com.atbm.app.BuildConfig.SERVER_URL
+
+    private var currentBaseUrl: String = DEFAULT_SERVER_URL
     private var retrofit: Retrofit? = null
 
     var identifiedApi: IdentifiedApi
@@ -54,12 +55,6 @@ object NetworkClient {
 
     private fun buildApis(baseUrl: String): Pair<IdentifiedApi, AnonymousApi> {
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("ngrok-skip-browser-warning", "true")
-                    .build()
-                chain.proceed(request)
-            }
             // KHÔNG gắn HttpLoggingInterceptor: log BODY sẽ ghi mật khẩu, JWT và dữ liệu hồ sơ ra logcat.
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)

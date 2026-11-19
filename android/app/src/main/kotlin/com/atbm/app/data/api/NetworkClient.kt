@@ -1,7 +1,11 @@
 package com.atbm.app.data.api
 
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -29,6 +33,38 @@ object NetworkClient {
         anonymousApi = aApi
     }
 
+    private const val PREFS = "atbm_connection"
+    private const val KEY_SERVER_URL = "server_url"
+
+    /** Bản debug cho phép gõ địa chỉ máy chủ (thử qua Wi-Fi chung); bản release luôn dùng SERVER_URL. */
+    val allowServerEdit: Boolean = com.atbm.app.BuildConfig.ALLOW_SERVER_EDIT
+
+    /** Gọi một lần lúc mở app: nạp địa chỉ máy chủ đã lưu (chỉ bản debug). */
+    fun init(context: Context) {
+        if (!allowServerEdit) return
+        val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SERVER_URL, null)
+        if (saved != null) updateBaseUrl(saved)
+    }
+
+    /** Áp dụng + lưu địa chỉ máy chủ (không phải dữ liệu nhạy cảm: chỉ là IP/tên miền). */
+    fun saveServerUrl(context: Context, url: String): Boolean {
+        if (!updateBaseUrl(url)) return false
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_SERVER_URL, currentBaseUrl).apply()
+        return true
+    }
+
+    /** Thử gọi GET /health của máy chủ; ném lỗi mạng/TLS nguyên bản để hiển thị thông báo thân thiện. */
+    suspend fun checkServer(baseUrl: String): Boolean = withContext(Dispatchers.IO) {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .build()
+        client.newCall(Request.Builder().url(baseUrl + "health").get().build()).execute().use { resp ->
+            resp.isSuccessful && (resp.body?.string()?.contains("\"status\"") == true)
+        }
+    }
+
     /**
      * Cập nhật URL máy chủ (LAN / thiết bị thật). Chỉ chấp nhận HTTPS: mọi kết nối bắt buộc qua TLS
      * (network_security_config.xml cũng cấm cleartext ở tầng hệ điều hành).
@@ -38,6 +74,8 @@ object NetworkClient {
         val trimmed = newUrl.trim()
         if (!isValidHttpsUrl(trimmed)) return false
         val formatted = if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+        // Bản release: không cho đổi địa chỉ máy chủ lúc chạy (tránh bị lừa trỏ app về server giả)
+        if (!allowServerEdit && formatted != DEFAULT_SERVER_URL) return false
         if (formatted == currentBaseUrl) return true
         currentBaseUrl = formatted
         val (iApi, aApi) = buildApis(formatted)

@@ -22,7 +22,13 @@ android {
   }
 
   buildTypes {
+    // ALLOW_SERVER_EDIT: ô "Cài đặt kết nối" (gõ IP laptop khi thử qua Wi-Fi chung).
+    // Chỉ bản debug; bản release (sau khi deploy) ẩn ô này và luôn dùng SERVER_URL.
+    debug {
+      buildConfigField("boolean", "ALLOW_SERVER_EDIT", "true")
+    }
     release {
+      buildConfigField("boolean", "ALLOW_SERVER_EDIT", "false")
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }

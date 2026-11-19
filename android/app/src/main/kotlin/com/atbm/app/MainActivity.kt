@@ -38,6 +38,9 @@ class MainActivity : ComponentActivity() {
         cacheDir.listFiles { f -> f.name.startsWith("ev_") || f.name.startsWith("evidence") }
             ?.forEach { it.delete() }
 
+        // Địa chỉ máy chủ đã lưu ở "Cài đặt kết nối" (chỉ bản debug)
+        com.atbm.app.data.api.NetworkClient.init(applicationContext)
+
         // Khởi tạo Notification Channel
         com.atbm.app.domain.notification.CaseNotificationManager.initChannel(this)
 

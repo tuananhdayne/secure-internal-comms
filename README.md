@@ -154,7 +154,8 @@ Yêu cầu môi trường: **Python 3.11+**
 ./dev.sh setup        # tạo venv, cài thư viện, nạp dữ liệu mẫu
 ./dev.sh run          # http://127.0.0.1:8000 (tự reload)
 ./dev.sh certs && ./dev.sh run-https   # HTTPS: https://localhost:8443 — xem docs/https-setup.md
-./dev.sh lan          # thử trên điện thoại thật cùng Wi‑Fi: build dist/cong-noi-bo-lan.apk + chạy HTTPS (chỉ để thử)
+./dev.sh apk          # build APK debug một lần -> dist/cong-noi-bo.apk (máy ảo + điện thoại thật)
+./dev.sh lan          # thử trên điện thoại thật cùng Wi‑Fi: chạy HTTPS + in IP để nhập vào app (chỉ để thử)
 # Trang đăng nhập web ẩn tài khoản dùng thử theo mặc định; đặt SHOW_DEMO_ACCOUNTS=true trong backend/.env khi demo
 ./dev.sh help         # toàn bộ lệnh
 ```
@@ -182,7 +183,7 @@ cd .. && ./dev.sh certs && ./dev.sh run-https     # https://localhost:8443
 * **Cổng Quản trị & Thanh tra Web:** `https://localhost:8443/admin/login`
 * **Tài liệu API (Swagger/Redoc):** tắt mặc định trên bản bàn giao; bật khi phát triển bằng `ENABLE_API_DOCS=true` → `https://localhost:8443/docs`
 * **App Android:** địa chỉ máy chủ đặt lúc build — `./gradlew assembleRelease -Patbm.serverUrl=https://api.ten-mien-cua-ban.vn/` (mặc định `https://10.0.2.2:8443/` cho Emulator). Không dùng dịch vụ tunnel công cộng (ngrok…) cho bản triển khai.
-* **Thử trên điện thoại thật (cùng Wi‑Fi):** `./dev.sh lan` rồi cài `dist/cong-noi-bo-lan.apk` — chi tiết và cách gỡ lỗi tại [docs/https-setup.md](docs/https-setup.md) (mục 4). Triển khai thật: [docs/deploy.md](docs/deploy.md).
+* **Thử trên điện thoại thật (cùng Wi‑Fi):** cài `dist/cong-noi-bo.apk` một lần (`./dev.sh apk`), mỗi lần thử chạy `./dev.sh lan` rồi nhập IP được in vào app (Đăng nhập → Cài đặt kết nối) — chi tiết và cách gỡ lỗi tại [docs/https-setup.md](docs/https-setup.md) (mục 4). Triển khai thật: [docs/deploy.md](docs/deploy.md).
 * **Giao thức nộp hồ sơ / bộ dữ liệu kiểm thử dùng chung:** [`docs/protocol.md`](docs/protocol.md)
 
 ---

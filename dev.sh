@@ -23,15 +23,15 @@ case "$cmd" in
     need_venv; cd "$BACKEND" && LOG_LEVEL=DEBUG exec "$PY" -m uvicorn app.main:app --reload --port "$PORT" --no-access-log ;;
   preflight)      # Kiểm tra cấu hình trước khi chạy thật (khóa JWT, demo, CORS, mật khẩu mẫu...)
     need_venv; cd "$BACKEND" && "$PY" scripts/preflight.py "$@" ;;
-  certs)          # Sinh CA nội bộ + chứng chỉ TLS (thêm IP LAN: ./dev.sh certs 192.168.1.15)
+  certs)          # Cấp chứng chỉ TLS dev, giữ CA nếu đã có (thêm IP: ./dev.sh certs 192.168.1.15; CA mới: --new-ca)
     need_venv; cd "$BACKEND" && "$PY" scripts/gen_dev_certs.py "$@" ;;
   run-https)      # Chạy backend HTTPS (https://0.0.0.0:8443; emulator: https://10.0.2.2:8443)
     need_venv
     [ -f "$BACKEND/certs/server.crt" ] || { echo "Chưa có chứng chỉ -> chạy: ./dev.sh certs"; exit 1; }
     cd "$BACKEND" && exec "$PY" run_https.py ;;
-  lan)            # Thử trong mạng Wi-Fi chung: chứng chỉ có IP máy này + build APK debug trỏ về đây + chạy HTTPS
+  lan)            # Thử trong mạng Wi-Fi chung: cấp lại chứng chỉ có IP máy này (giữ CA) + chạy HTTPS
     need_venv
-    # Các IPv4 trong mạng LAN của máy (bỏ docker/bridge); APK trỏ về IP Wi-Fi nếu có
+    # Các IPv4 trong mạng LAN của máy (bỏ docker/bridge); ưu tiên IP Wi-Fi để in ra
     mapfile -t IPS < <(ip -4 -o addr show scope global | awk '$2 !~ /^(docker|br-|veth|virbr)/ {split($4,a,"/"); print a[1]}')
     [ "${#IPS[@]}" -gt 0 ] || { echo "Không tìm thấy IP mạng LAN — máy đã kết nối Wi-Fi chưa?"; exit 1; }
     LAN_IP="${1:-$(ip -4 -o addr show scope global | awk '$2 ~ /^wl/ {split($4,a,"/"); print a[1]; exit}')}"
@@ -50,16 +50,25 @@ sys.exit(0 if ipaddress.ip_address(sys.argv[2]) in ips else 1)
 PYEOF
     done
     if [ "$MISSING" = 1 ]; then
-      echo "==> Sinh lại chứng chỉ cho: ${IPS[*]}"
-      (cd "$BACKEND" && "$PY" scripts/gen_dev_certs.py "${IPS[@]}")
+      echo "==> Cấp lại chứng chỉ server cho: ${IPS[*]} (dùng lại CA — không cần cài lại APK)"
+      (cd "$BACKEND" && "$PY" scripts/gen_dev_certs.py "${IPS[@]}" "$LAN_IP")
     fi
-    echo "==> Build APK debug trỏ về https://$LAN_IP:8443/"
-    (cd "$ROOT/android" && ./gradlew -q assembleDebug "-Patbm.serverUrl=https://$LAN_IP:8443/")
-    mkdir -p "$ROOT/dist" && cp "$ROOT/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT/dist/cong-noi-bo-lan.apk"
-    echo "==> APK: dist/cong-noi-bo-lan.apk  (cài: adb install -r dist/cong-noi-bo-lan.apk, hoặc gửi file sang điện thoại)"
-    echo "    Điện thoại phải cùng Wi-Fi. Nếu không kết nối được: sudo ufw allow 8443/tcp"
-    echo "    Web quản trị: https://$LAN_IP:8443/admin  (trình duyệt sẽ cảnh báo CA nội bộ — bình thường)"
+    echo
+    echo "=================================================================="
+    echo "==> Nhập địa chỉ này vào app (Đăng nhập → Cài đặt kết nối): $LAN_IP"
+    echo "=================================================================="
+    echo "    Web quản trị: https://$LAN_IP:8443/admin  (trình duyệt cảnh báo CA nội bộ — bình thường)"
+    echo "    Điện thoại phải cùng Wi-Fi. Không kết nối được: sudo ufw allow 8443/tcp"
+    [ -f "$ROOT/dist/cong-noi-bo.apk" ] || echo "    Chưa có APK -> chạy một lần: ./dev.sh apk  rồi cài dist/cong-noi-bo.apk"
+    echo
     cd "$BACKEND" && exec "$PY" run_https.py ;;
+  apk)            # Build APK debug một lần (dùng cho cả máy ảo và điện thoại thật)
+    echo "==> Build APK debug..."
+    (cd "$ROOT/android" && ./gradlew -q assembleDebug)
+    mkdir -p "$ROOT/dist" && cp "$ROOT/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT/dist/cong-noi-bo.apk"
+    echo "==> APK: dist/cong-noi-bo.apk"
+    echo "    Cài: adb install -r dist/cong-noi-bo.apk  (hoặc gửi file sang điện thoại rồi mở để cài)"
+    echo "    Chỉ cần cài lại khi sửa code app hoặc sau khi sinh CA mới (./dev.sh certs --new-ca)." ;;
   seed)           # Nạp dữ liệu mẫu (chỉ thêm tài khoản/bài viết còn thiếu)
     need_venv; cd "$BACKEND" && "$PY" -m app.db.seed ;;
   test)           # Toàn bộ pytest (CSDL tạm, không đụng app.db). Thêm tham số pytest tùy ý.

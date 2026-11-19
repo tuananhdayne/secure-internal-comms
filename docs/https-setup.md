@@ -17,13 +17,17 @@ Script tạo:
 
 | File | Ý nghĩa | Commit? |
 |---|---|---|
+| `backend/certs/ca.key` | Khóa riêng CA dev (quyền 600, chỉ nằm trên máy dev) | **Không** (đã `.gitignore`) |
 | `backend/certs/server.key` | Khóa riêng TLS của server | **Không** (đã `.gitignore`) |
 | `backend/certs/server.crt` | Chứng chỉ server + CA (chain) | Không |
 | `backend/certs/ca.crt` | CA công khai | Không bắt buộc |
 | `android/app/src/main/res/raw/atbm_dev_ca.pem` | CA mà app Android tin cậy | **Có** |
 
-Khóa riêng của CA bị hủy ngay sau khi ký nên không thể dùng CA này ký thêm chứng chỉ giả.
-Chạy lại script đồng nghĩa với tạo CA mới → phải build lại app.
+CA chỉ dùng cho phát triển và được **giữ ổn định**: lần đầu script sinh CA và lưu `ca.key` (quyền 600)
+trong `backend/certs/` (đã `.gitignore`, không rời máy dev, không vào APK); các lần sau chỉ cấp lại chứng chỉ
+server với SAN mới, nên APK đã cài vẫn kết nối được. Bản debug tin CA này cho mọi host (để thử qua LAN);
+mọi bản build chỉ tin nó cho `10.0.2.2` / `localhost` / `127.0.0.1`.
+Muốn thay CA: `python scripts/gen_dev_certs.py --new-ca` → **phải build và cài lại mọi APK**.
 
 ## 2. Chạy backend qua HTTPS
 
@@ -66,28 +70,33 @@ trên cổng 8443, có header HSTS.
 ## 4. Chạy thử trong mạng Wi‑Fi chung (LAN)
 
 Dùng khi muốn cầm điện thoại thật thử app mà chưa có máy chủ thuê. **Chỉ để thử nghiệm** —
-triển khai thật xem [deploy.md](deploy.md).
+triển khai thật xem [deploy.md](deploy.md). Laptop và điện thoại phải **cùng một mạng Wi‑Fi**.
 
-1. Laptop chạy backend và điện thoại kết nối **cùng một mạng Wi‑Fi**.
-2. Trên laptop chạy:
+**Một lần duy nhất:**
 
-   ```bash
-   ./dev.sh lan                # tự dò IP Wi‑Fi của máy
-   ./dev.sh lan 192.168.1.15   # hoặc chỉ định IP cụ thể
-   ```
+```bash
+./dev.sh certs   # nếu chưa từng sinh chứng chỉ (tạo CA dev)
+./dev.sh apk     # build APK debug -> dist/cong-noi-bo.apk
+```
 
-   Lệnh này tự làm hết: dò IP LAN (bỏ qua docker/bridge), sinh lại chứng chỉ nếu chưa có IP đó,
-   build APK debug trỏ về `https://<ip-wifi>:8443/`, chép ra `dist/cong-noi-bo-lan.apk`, rồi chạy server HTTPS cổng 8443.
-3. Cài APK lên điện thoại: `adb install -r dist/cong-noi-bo-lan.apk` (cắm cáp), hoặc gửi file
-   `dist/cong-noi-bo-lan.apk` qua Zalo/Drive/USB rồi mở để cài.
-4. Mở app và đăng nhập bằng tài khoản mẫu (vd. `NV001` / `employee123`).
-   Web quản trị trên laptop/điện thoại: `https://<ip-wifi>:8443/admin` — trình duyệt cảnh báo CA nội bộ là bình thường
+Cài `dist/cong-noi-bo.apk`: `adb install -r dist/cong-noi-bo.apk` (cắm cáp), hoặc gửi file qua Zalo/Drive/USB
+rồi mở để cài. Cùng một APK dùng được cho cả máy ảo và điện thoại thật.
+
+**Mỗi lần thử:**
+
+1. Trên laptop: `./dev.sh lan` (hoặc `./dev.sh lan 192.168.1.15` để chỉ định IP). Lệnh dò IP LAN, cấp lại chứng chỉ
+   server nếu thiếu IP đó (giữ nguyên CA), in dòng `==> Nhập địa chỉ này vào app …: 192.168.1.38` rồi chạy HTTPS cổng 8443.
+2. Mở app → **Cài đặt kết nối** (ở màn đăng nhập) → nhập **chỉ IP** vừa in, vd. `192.168.1.38`
+   (app tự thêm `https://` và `:8443`) → bấm **Kiểm tra** (hoặc ✓ trên bàn phím).
+3. Đăng nhập bằng tài khoản mẫu (vd. `NV001` / `employee123`).
+   Web quản trị: `https://<ip>:8443/admin` — trình duyệt cảnh báo CA nội bộ là bình thường
    (muốn hết cảnh báo thì import `backend/certs/ca.crt`, đây là chứng chỉ công khai).
+
+Ô **Cài đặt kết nối** chỉ có ở bản debug. Bản release (khi triển khai, build với `-Patbm.serverUrl=…`) ẩn ô này.
 
 **Không kết nối được?**
 
 - Tường lửa chặn cổng: `sudo ufw allow 8443/tcp`.
-- Đổi mạng Wi‑Fi / IP laptop thay đổi → chạy lại `./dev.sh lan` rồi cài lại APK mới.
-- Mỗi lần chứng chỉ được sinh lại là **một CA mới** → APK cài trước đó (kể cả bản Emulator) sẽ báo lỗi chứng chỉ,
-  cần build/cài lại.
+- Đổi mạng Wi‑Fi / IP laptop thay đổi → chạy lại `./dev.sh lan` và nhập IP mới vào app. **Không cần cài lại APK.**
+- Chỉ phải build/cài lại APK khi sửa code app, hoặc sau khi sinh CA mới (`./dev.sh certs --new-ca`).
 - Emulator vẫn dùng được như cũ qua `https://10.0.2.2:8443/`.

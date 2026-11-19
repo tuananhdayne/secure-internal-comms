@@ -1,0 +1,69 @@
+/* CSS riêng của templates/cases.html (dùng biến từ admin.css). */
+.toolbar { display: flex; gap: .6rem; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: .85rem 1.35rem; border-bottom: 1px solid var(--border-subtle); background: #fbfcfe; }
+.chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.chip { border: 1px solid var(--border-subtle); background: #fff; color: var(--text-secondary); font-size: .8rem; font-weight: 600; padding: .32rem .75rem; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; gap: .4rem; align-items: center; }
+.chip:hover { border-color: var(--border-strong); }
+.chip[aria-pressed="true"] { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+.chip .n { font-variant-numeric: tabular-nums; opacity: .7; font-weight: 500; }
+.search { position: relative; min-width: 220px; flex: 0 1 280px; }
+.search .icon-sm { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.search input { padding-left: 2.2rem; padding-top: .5rem; padding-bottom: .5rem; font-size: .85rem; }
+
+/* Modal */
+.modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(11,17,32,.55); backdrop-filter: blur(3px); padding: 1.5rem; align-items: center; justify-content: center; }
+.modal.open { display: flex; }
+.modal-dialog {
+    background: var(--bg-base); width: 100%; max-width: 1080px; max-height: calc(100vh - 3rem);
+    border-radius: 20px; box-shadow: var(--shadow-modal); display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .22s var(--ease);
+}
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+.modal-head { display: flex; align-items: center; gap: .9rem; padding: 1.1rem 1.35rem; background: #fff; border-bottom: 1px solid var(--border-subtle); }
+.modal-head h2 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; word-break: break-all; }
+.modal-meta { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .25rem; font-size: .78rem; color: var(--text-muted); }
+.icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-subtle); background: #fff; color: var(--text-secondary); cursor: pointer; display: grid; place-items: center; margin-left: auto; flex-shrink: 0; }
+.icon-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+.modal-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.1rem; padding: 1.1rem 1.35rem 1.35rem; overflow-y: auto; }
+.section { background: #fff; border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.1rem 1.15rem; }
+.section + .section { margin-top: 1.1rem; }
+.section-title { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .85rem; font-size: .76rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-secondary); }
+.section-title > span:first-child { display: inline-flex; align-items: center; gap: .45rem; }
+.field-label { font-size: .72rem; color: var(--text-muted); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .25rem; }
+.plain-title { font-size: 1.08rem; font-weight: 700; line-height: 1.4; margin-bottom: .9rem; }
+.plain-desc { font-size: .92rem; line-height: 1.65; white-space: pre-wrap; background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: 10px; padding: .85rem 1rem; max-height: 280px; overflow-y: auto; }
+
+.ev { border: 1px solid var(--border-subtle); border-radius: 12px; padding: .75rem .85rem; background: #fbfcfe; }
+.ev + .ev { margin-top: .6rem; }
+.ev-row { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+.ev-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--primary-light); color: var(--primary); flex-shrink: 0; }
+.ev-name { font-weight: 600; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-sub { font-size: .72rem; color: var(--text-muted); display: flex; gap: .5rem; flex-wrap: wrap; }
+.ev-media { margin-top: .7rem; }
+.ev-media img, .ev-media video { max-height: 220px; max-width: 100%; border-radius: 10px; border: 1px solid var(--border-subtle); background: #0b1120; display: block; }
+.ev-media audio { width: 100%; }
+
+.status-form { display: flex; gap: .5rem; }
+.status-form select { flex: 1; }
+
+.chat { display: flex; flex-direction: column; min-height: 0; }
+.msgs { display: flex; flex-direction: column; gap: .6rem; max-height: 330px; min-height: 140px; overflow-y: auto; padding: .25rem .15rem .75rem; }
+.msg { max-width: 86%; padding: .6rem .85rem; border-radius: 14px; font-size: .87rem; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
+.msg-who { font-size: .7rem; font-weight: 700; margin-bottom: .2rem; display: flex; align-items: center; gap: .3rem; white-space: normal; }
+.msg-time { font-size: .68rem; margin-top: .25rem; opacity: .75; white-space: normal; }
+.msg.me { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.msg.me .msg-who { color: #c9d5fb; justify-content: flex-end; }
+.msg.me .msg-time { text-align: right; }
+.msg.them { align-self: flex-start; background: var(--bg-muted); border: 1px solid var(--border-subtle); border-bottom-left-radius: 4px; }
+.msg.them .msg-who { color: var(--accent-emerald); }
+.reply { display: flex; gap: .5rem; padding-top: .75rem; border-top: 1px solid var(--border-subtle); }
+.reply input { flex: 1; }
+.loading-line { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #eef1f6, #e2e7ef, #eef1f6); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (max-width: 900px) {
+    .modal { padding: 0; align-items: stretch; }
+    .modal-dialog { max-height: none; height: 100%; border-radius: 0; }
+    .modal-body { grid-template-columns: minmax(0, 1fr); padding: 1rem; }
+    .search { flex: 1 1 100%; }
+    .toolbar { padding: .85rem 1rem; }
+}

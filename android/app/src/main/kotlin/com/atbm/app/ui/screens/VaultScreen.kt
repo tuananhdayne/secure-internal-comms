@@ -7,6 +7,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +27,7 @@ import com.atbm.app.data.api.NetworkClient
 import com.atbm.app.data.api.SendMessageRequest
 import com.atbm.app.data.db.SecureVaultDatabase
 import com.atbm.app.domain.crypto.EciesHelper
+import com.atbm.app.ui.components.DisplayText
 import com.atbm.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,12 +47,20 @@ fun VaultScreen(
     var serverCaseDetail by remember { mutableStateOf<CaseDetailResponse?>(null) }
     var chatInput by remember { mutableStateOf("") }
     var showPanicDialog by remember { mutableStateOf(false) }
+    var showCodeDialog by remember { mutableStateOf(false) }
+    var codeCurrent by remember { mutableStateOf("") }
+    var codeNew by remember { mutableStateOf("") }
+    var codeConfirm by remember { mutableStateOf("") }
+    var codeError by remember { mutableStateOf<String?>(null) }
     var panicPinInput by remember { mutableStateOf("") }
+    var panicPinError by remember { mutableStateOf(false) }
+    var chatError by remember { mutableStateOf<String?>(null) }
+    var isSending by remember { mutableStateOf(false) }
 
     val loadVaultCases = {
         scope.launch(Dispatchers.IO) {
             val vault = SecureVaultDatabase(context)
-            val list = vault.getAllCases("VAULT_MASTER_KEY_SQLCIPHER")
+            val list = vault.getAllCases()
             withContext(Dispatchers.Main) {
                 casesList = list
             }
@@ -61,7 +76,7 @@ fun VaultScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Secure Vault (Hồ Sơ Của Bạn)",
+                        text = "Tố giác của tôi",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -69,7 +84,7 @@ fun VaultScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("←", fontSize = 20.sp, color = TextPrimary)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Quay lại", tint = TextPrimary)
                     }
                 },
                 actions = {
@@ -80,11 +95,14 @@ fun VaultScreen(
                             loadVaultCases()
                         }
                     }) {
-                        Text("🔄", fontSize = 18.sp)
+                        Icon(Icons.Outlined.Refresh, contentDescription = "Làm mới", tint = TextPrimary)
                     }
                     // Nút Kích hoạt Panic PIN Khẩn cấp
+                    IconButton(onClick = { showCodeDialog = true; codeError = null }) {
+                        Icon(Icons.Outlined.Password, contentDescription = "Đặt mã khẩn cấp", tint = TextPrimary)
+                    }
                     IconButton(onClick = { showPanicDialog = true }) {
-                        Text("🚨", fontSize = 20.sp)
+                        Icon(Icons.Outlined.DeleteForever, contentDescription = "Xóa nhanh dữ liệu", tint = AccentRed)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CardDark)
@@ -103,12 +121,15 @@ fun VaultScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("🗄️", fontSize = 48.sp)
+                    Icon(Icons.Outlined.Inventory2, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(12.dp))
+                    Text("Bạn chưa gửi tố giác nào", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                     Text(
-                        text = "Chưa có hồ sơ nào trong Secure Vault.",
-                        fontSize = 14.sp,
-                        color = TextSecondary
+                        text = "Các tố giác bạn gửi từ máy này sẽ hiển thị tại đây để theo dõi tiến độ.",
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
                     )
                 }
             } else {
@@ -122,6 +143,7 @@ fun VaultScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     selectedCase = c
+                                    chatError = null
                                     scope.launch(Dispatchers.IO) {
                                         try {
                                             val resp = NetworkClient.anonymousApi.getCaseStatus(c.caseToken)
@@ -132,8 +154,8 @@ fun VaultScreen(
                                                 }
                                                 // Xóa cờ chưa đọc trong SQLCipher local khi người dùng đã mở xem
                                                 val vault = SecureVaultDatabase(context)
-                                                vault.markCaseAsRead("VAULT_MASTER_KEY_SQLCIPHER", c.caseToken, detail.messages.size)
-                                                val updatedList = vault.getAllCases("VAULT_MASTER_KEY_SQLCIPHER")
+                                                vault.markCaseAsRead(c.caseToken, detail.messages.size)
+                                                val updatedList = vault.getAllCases()
                                                 withContext(Dispatchers.Main) {
                                                     casesList = updatedList
                                                 }
@@ -151,8 +173,8 @@ fun VaultScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = c.caseToken,
-                                        fontSize = 13.sp,
+                                        text = "Mã " + DisplayText.shortCaseCode(c.caseToken),
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = AccentCyan
                                     )
@@ -167,7 +189,7 @@ fun VaultScreen(
                                                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444))
                                             ) {
                                                 Text(
-                                                    text = "🔔 CÓ PHẢN HỒI MỚI",
+                                                    text = "Có cập nhật mới",
                                                     color = Color(0xFFEF4444),
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold,
@@ -175,13 +197,14 @@ fun VaultScreen(
                                                 )
                                             }
                                         }
+                                        val st = DisplayText.caseStatus(c.status)
                                         Surface(
-                                            color = AccentGreen.copy(alpha = 0.2f),
+                                            color = st.color.copy(alpha = 0.2f),
                                             shape = RoundedCornerShape(4.dp)
                                         ) {
                                             Text(
-                                                text = c.status,
-                                                color = AccentGreen,
+                                                text = st.text,
+                                                color = st.color,
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -198,7 +221,7 @@ fun VaultScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Chuyên mục: ${c.category} • Ngày tạo: ${c.createdAt}",
+                                    text = "${c.category} • Gửi lúc ${DisplayText.localDateTime(c.createdAt)}",
                                     fontSize = 11.sp,
                                     color = TextSecondary
                                 )
@@ -226,7 +249,7 @@ fun VaultScreen(
                     },
                     title = {
                         Text(
-                            text = "Tra Cứu & Chat E2EE (${curCase.caseToken})",
+                            text = "Tố giác " + DisplayText.shortCaseCode(curCase.caseToken),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -238,33 +261,33 @@ fun VaultScreen(
                                 .heightIn(max = 400.dp)
                         ) {
                             Text(
-                                text = "Tiêu đề: ${curCase.title}",
+                                text = curCase.title,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Text(
-                                text = "Trạng thái máy chủ: ${serverCaseDetail?.status ?: "Đang đồng bộ..."}",
+                                text = "Trạng thái: " + (serverCaseDetail?.let { DisplayText.caseStatus(it.status).text } ?: "đang tải…"),
                                 fontSize = 12.sp,
-                                color = AccentAmber
+                                color = serverCaseDetail?.let { DisplayText.caseStatus(it.status).color } ?: TextSecondary
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             HorizontalDivider(color = BorderDark)
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Text("Lịch sử tin nhắn bảo mật (E2EE):", fontSize = 12.sp, color = TextSecondary)
+                            Text("Trao đổi với Ban Thanh tra", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
                             Spacer(modifier = Modifier.height(6.dp))
 
                             val messages = serverCaseDetail?.messages ?: emptyList()
                             if (messages.isEmpty()) {
-                                Text("Chưa có tin nhắn phản hồi nào từ Ban Thanh tra.", fontSize = 11.sp, color = TextSecondary)
+                                Text("Chưa có tin nhắn. Ban Thanh tra sẽ liên hệ tại đây nếu cần thêm thông tin; bạn cũng có thể gửi bổ sung bất cứ lúc nào.", fontSize = 11.sp, color = TextSecondary)
                             } else {
                                 LazyColumn(modifier = Modifier.weight(1f)) {
                                     items(messages) { msg ->
                                         val isFromMe = (msg.senderRole == "ANONYMOUS_WHISTLEBLOWER" || msg.senderRole == "WHISTLEBLOWER")
-                                        val senderText = if (isFromMe) "Tôi (Người tố cáo)" else "Ban Thanh tra (Officer)"
+                                        val senderText = if (isFromMe) "Bạn" else "Ban Thanh tra"
                                         
-                                        var decryptedText = if (isFromMe) "[Tin nhắn đã gửi đi - E2EE]" else "[Nội dung mã hóa]"
+                                        var decryptedText = if (isFromMe) "(Tin nhắn bạn đã gửi — chỉ Ban Thanh tra đọc được)" else ""
                                         if (!isFromMe) {
                                             try {
                                                 val privKey = EciesHelper.importPrivateKeyFromHex(curCase.casePrivateKeyHex)
@@ -277,7 +300,7 @@ fun VaultScreen(
                                                 )
                                                 decryptedText = String(raw, Charsets.UTF_8)
                                             } catch (_: Exception) {
-                                                decryptedText = "[Giải mã thất bại]"
+                                                decryptedText = "(Không thể hiển thị tin nhắn này)"
                                             }
                                         }
 
@@ -303,7 +326,7 @@ fun VaultScreen(
                                 OutlinedTextField(
                                     value = chatInput,
                                     onValueChange = { chatInput = it },
-                                    placeholder = { Text("Nhập tin nhắn bổ sung...") },
+                                    placeholder = { Text("Nhập thông tin bổ sung…") },
                                     modifier = Modifier.weight(1f),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = TextPrimary,
@@ -312,14 +335,23 @@ fun VaultScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Button(
+                                    enabled = !isSending,
                                     onClick = {
                                         if (chatInput.isNotBlank()) {
                                             val textToSend = chatInput
+                                            isSending = true
+                                            chatError = null
                                             scope.launch(Dispatchers.IO) {
                                                 try {
                                                     val privKey = EciesHelper.importPrivateKeyFromHex(curCase.casePrivateKeyHex)
                                                     val officerPubHex = NetworkClient.identifiedApi.getOfficerPublicKeys("").body()?.chatPubHex
-                                                        ?: return@launch
+                                                    if (officerPubHex == null) {
+                                                        withContext(Dispatchers.Main) {
+                                                            chatError = "Không thể kết nối tới hệ thống. Vui lòng thử lại."
+                                                            isSending = false
+                                                        }
+                                                        return@launch
+                                                    }
                                                     val encMsg = EciesHelper.eciesEncrypt(
                                                         officerPubHex,
                                                         textToSend.toByteArray(Charsets.UTF_8)
@@ -345,8 +377,14 @@ fun VaultScreen(
                                                             }
                                                             chatInput = ""
                                                         }
+                                                    } else {
+                                                        withContext(Dispatchers.Main) { chatError = "Gửi tin nhắn không thành công. Vui lòng thử lại." }
                                                     }
-                                                } catch (_: Exception) {}
+                                                } catch (e: Exception) {
+                                                    withContext(Dispatchers.Main) { chatError = DisplayText.networkError(e) }
+                                                } finally {
+                                                    withContext(Dispatchers.Main) { isSending = false }
+                                                }
                                             }
                                         }
                                     }
@@ -354,8 +392,69 @@ fun VaultScreen(
                                     Text("Gửi")
                                 }
                             }
+                            if (chatError != null) {
+                                Text(chatError ?: "", fontSize = 11.sp, color = AccentRed, modifier = Modifier.padding(top = 4.dp))
+                            }
                         }
                     },
+                    containerColor = CardDark
+                )
+            }
+
+            // ĐẶT / ĐỔI MÃ KHẨN CẤP
+            if (showCodeDialog) {
+                val isCustom = com.atbm.app.data.security.EmergencyCode.isCustom(context)
+                val close = {
+                    showCodeDialog = false; codeCurrent = ""; codeNew = ""; codeConfirm = ""; codeError = null
+                }
+                val pinField: @Composable (String, String, (String) -> Unit) -> Unit = { label, value, onChange ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onChange(it.filter(Char::isDigit).take(8)); codeError = null },
+                        label = { Text(label) },
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary)
+                    )
+                }
+                AlertDialog(
+                    onDismissRequest = close,
+                    title = { Text("Mã khẩn cấp", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text(
+                                if (isCustom) "Đổi mã dùng để xóa nhanh dữ liệu trên máy."
+                                else "Bạn đang dùng mã mặc định. Hãy đặt mã riêng (6–8 chữ số) mà chỉ bạn biết.",
+                                fontSize = 12.sp, color = TextSecondary
+                            )
+                            pinField(if (isCustom) "Mã hiện tại" else "Mã hiện tại (mặc định trong hướng dẫn)", codeCurrent) { codeCurrent = it }
+                            pinField("Mã mới", codeNew) { codeNew = it }
+                            pinField("Nhập lại mã mới", codeConfirm) { codeConfirm = it }
+                            if (codeError != null) {
+                                Text(codeError ?: "", color = AccentRed, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                codeError = when {
+                                    !com.atbm.app.data.security.EmergencyCode.isValidFormat(codeNew) -> "Mã mới phải gồm 6–8 chữ số."
+                                    codeNew != codeConfirm -> "Hai lần nhập mã mới không khớp."
+                                    !com.atbm.app.data.security.EmergencyCode.change(context, codeCurrent, codeNew) -> "Mã hiện tại không đúng."
+                                    else -> null
+                                }
+                                if (codeError == null) {
+                                    close()
+                                    android.widget.Toast.makeText(context, "Đã lưu mã khẩn cấp mới.", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color.White)
+                        ) { Text("Lưu") }
+                    },
+                    dismissButton = { OutlinedButton(onClick = close) { Text("Hủy") } },
                     containerColor = CardDark
                 )
             }
@@ -363,43 +462,52 @@ fun VaultScreen(
             // PANIC PIN DIALOG
             if (showPanicDialog) {
                 AlertDialog(
-                    onDismissRequest = { showPanicDialog = false },
+                    onDismissRequest = { showPanicDialog = false; panicPinInput = ""; panicPinError = false },
                     confirmButton = {
                         Button(
                             onClick = {
-                                if (panicPinInput == "999999") {
+                                panicPinError = false
+                                if (com.atbm.app.data.security.EmergencyCode.matches(context, panicPinInput)) {
                                     // KÍCH HOẠT TIÊU HỦY DỮ LIỆU KHẨN CẤP
                                     val vault = SecureVaultDatabase(context)
                                     vault.emergencyWipe()
                                     showPanicDialog = false
+                                    panicPinInput = ""
                                     onPanicWiped()
+                                } else {
+                                    panicPinError = true
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = Color.White)
                         ) {
-                            Text("XÁC NHẬN TIÊU HỦY")
+                            Text("Xóa dữ liệu")
                         }
                     },
                     dismissButton = {
-                        OutlinedButton(onClick = { showPanicDialog = false }) {
+                        OutlinedButton(onClick = { showPanicDialog = false; panicPinInput = ""; panicPinError = false }) {
                             Text("Hủy")
                         }
                     },
                     title = {
-                        Text("🚨 CẢNH BÁO: CHẾ ĐỘ PANIC PIN", color = AccentRed, fontWeight = FontWeight.Bold)
+                        Text("Xóa nhanh dữ liệu trên máy", color = AccentRed, fontWeight = FontWeight.Bold)
                     },
                     text = {
                         Column {
                             Text(
-                                "Nếu bạn đang bị cưỡng ép kiểm tra thiết bị, nhập mã PANIC PIN (999999) để tiến hành Overwrite Shredding tiêu hủy toàn bộ kho bí mật trong tích tắc.",
+                                "Dùng khi bạn cần xóa ngay mọi dấu vết tố giác trên điện thoại này. Toàn bộ tố giác đã lưu sẽ bị xóa vĩnh viễn và không thể khôi phục.\n\nNhập mã khẩn cấp để xác nhận.",
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = panicPinInput,
-                                onValueChange = { panicPinInput = it },
-                                placeholder = { Text("Nhập 999999...") },
+                                onValueChange = { panicPinInput = it.filter(Char::isDigit).take(12); panicPinError = false },
+                                placeholder = { Text("Mã khẩn cấp") },
+                                singleLine = true,
+                                isError = panicPinError,
+                                supportingText = if (panicPinError) { { Text("Mã không đúng.") } } else null,
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = TextPrimary,

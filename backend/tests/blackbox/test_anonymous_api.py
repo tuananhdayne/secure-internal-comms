@@ -1,3 +1,4 @@
+import secrets
 import io
 import hashlib
 import pytest
@@ -8,7 +9,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 
 from app.db.session import engine, SessionLocal, Base
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine, simulate_client_blinding, simulate_client_unblinding
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message, simulate_client_blinding
 from app.api.v1.anonymous import router as anonymous_router
 
 app = FastAPI()
@@ -26,7 +27,7 @@ def teardown_module(module):
 
 def test_submit_valid_case_success():
     # 1. Client sinh case_token và cặp khóa EC tạm thời
-    case_token = "case-uuid-valid-1234"
+    case_token = "CASE-0123456789abcdef0123456789abcdef"
     case_priv_key = ec.generate_private_key(ec.SECP256R1())
     case_pub_bytes = case_priv_key.public_key().public_bytes(
         encoding=serialization.Encoding.X962,
@@ -43,7 +44,7 @@ def test_submit_valid_case_success():
     enc_desc = "fedcba9876543210"
 
     # 3. Tính mã băm toàn vẹn H
-    H = BlindSignatureEngine.compute_payload_hash(
+    H = payload_message(
         category=category,
         encrypted_title=enc_title,
         encrypted_description=enc_desc,
@@ -54,9 +55,9 @@ def test_submit_valid_case_success():
 
     # 4. Làm mù & xin chữ ký mù
     e, n = key_manager.rsa_public_numbers
-    m_star, r = simulate_client_blinding(H, e, n)
+    m_star, r, _m_enc = client_blind(H, e, n)
     s_star = BlindSignatureEngine.blind_sign(m_star)
-    s = simulate_client_unblinding(s_star, r, n)
+    s = client_finalize(s_star, r, _m_enc, e, n)
     unblinded_sig_hex = hex(s)
 
     # 5. Nộp hồ sơ qua API Zero-Knowledge
@@ -93,7 +94,7 @@ def test_submit_case_tampered_signature_fails():
         "payload_ephemeral_pub": "04" + "a" * 128,
         "payload_iv": "b" * 24,
         "payload_auth_tag": "c" * 32,
-        "case_token": "case-uuid-fake-sig",
+        "case_token": f"CASE-{secrets.token_hex(16)}",
         "case_public_key": "04" + "b" * 128,
         "unblinded_signature": "0x1234567890abcdef"  # Chữ ký giả mạo
     }
@@ -103,9 +104,10 @@ def test_submit_case_tampered_signature_fails():
 
 
 def test_get_case_status_and_chat():
-    case_token = "case-uuid-valid-1234"
+    case_token = "CASE-0123456789abcdef0123456789abcdef"
     status_resp = client.get(f"/api/v1/anonymous/cases/{case_token}")
     assert status_resp.status_code == 200
     data = status_resp.json()
     assert data["case_token"] == case_token
-    assert len(data["evidences"]) == 1
+    # Tra cứu ẩn danh KHÔNG lộ danh sách / đường dẫn tệp bằng chứng
+    assert data["evidences"] == []

@@ -1,10 +1,11 @@
+import secrets
 import io
 import pytest
 from fastapi.testclient import TestClient
 from cryptography.hazmat.primitives.asymmetric import rsa
 from app.main import app
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message
 from app.crypto.ecies import ecies_encrypt
 from app.db.session import engine, SessionLocal, Base
 from app.models.anonymous import WhistleCase, CaseEvidence
@@ -27,7 +28,7 @@ def test_submit_case_with_multimedia_evidences(client):
     plaintext = "Tiêu đề tham nhũng đa phương tiện|||Nội dung mô tả chi tiết kèm video, ghi âm hiện trường.".encode("utf-8")
     enc_payload = ecies_encrypt(officer_pub_hex, plaintext)
 
-    case_token = "CASE-MULTIMEDIA-TEST-999"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham nhũng tài chính"
     case_pub_key = "04" + "aa" * 64
 
@@ -46,7 +47,7 @@ def test_submit_case_with_multimedia_evidences(client):
     file_hashes = [img_hash, audio_hash, video_hash, doc_hash]
 
     # 3. Tính mã băm H và xin chữ ký mù
-    H = BlindSignatureEngine.compute_payload_hash(
+    H = payload_message(
         category=category,
         encrypted_title=enc_payload["ciphertext"][:32],
         encrypted_description=enc_payload["ciphertext"],
@@ -58,11 +59,10 @@ def test_submit_case_with_multimedia_evidences(client):
     # Giả lập làm mù và ký mù
     r = 13579
     e, n = key_manager.rsa_public_numbers
-    d, _ = key_manager.rsa_private_numbers
-    m_star = (H * pow(r, e, n)) % n
-    s_star = pow(m_star, d, n)
-    # Bóc mù
-    s = (s_star * pow(r, -1, n)) % n
+    m_star, r, m_enc = client_blind(H, e, n, r=r)
+    s_star = BlindSignatureEngine.blind_sign(m_star)
+    # Bóc mù + kiểm tra (RFC 9474 Finalize)
+    s = client_finalize(s_star, r, m_enc, e, n)
     s_hex = hex(s)
 
     # 4. Gửi request multipart
@@ -95,14 +95,21 @@ def test_submit_case_with_multimedia_evidences(client):
     status_res = client.get(f"/api/v1/anonymous/cases/{case_token}")
     assert status_res.status_code == 200
     status_json = status_res.json()
-    assert len(status_json["evidences"]) == 4
+    assert status_json["evidences"] == []  # tra cứu ẩn danh không lộ tệp bằng chứng
 
-    returned_mimes = [e["mime_type"] for e in status_json["evidences"]]
-    assert "image/png" in returned_mimes
-    assert "audio/mpeg" in returned_mimes
-    assert "video/mp4" in returned_mimes
-    assert "application/pdf" in returned_mimes
-
-    for ev in status_json["evidences"]:
-        assert ev["file_url"].startswith("/uploads/evidences/")
-        assert len(ev["file_sha256_hash"]) == 64
+    # Kiểm tra phía lưu trữ: 4 tệp đều được mã hóa khi lưu, giữ đúng MIME và mã băm
+    from app.services.evidence import decrypt_blob, evidence_path
+    with SessionLocal() as db:
+        evs = db.query(WhistleCase).filter(WhistleCase.case_token == case_token).one().evidences
+        assert len(evs) == 4
+        mimes = [e.mime_type for e in evs]
+        for mime in ("image/png", "audio/mpeg", "video/mp4", "application/pdf"):
+            assert mime in mimes
+        for ev in evs:
+            assert ev.file_url.startswith("enc:")
+            assert len(ev.file_sha256_hash) == 64
+            blob = evidence_path(ev.file_url).read_bytes()
+            plain, _ = decrypt_blob(blob)
+            import hashlib as _h
+            assert _h.sha256(plain).hexdigest() == ev.file_sha256_hash
+            assert plain[:16] not in blob  # nội dung gốc không nằm rõ trên đĩa

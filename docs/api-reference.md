@@ -1,6 +1,6 @@
 # Tài Liệu Đặc Tả Chi Tiết API (API Reference)
 > **Dự án:** Secure Internal Communications & Whistleblower Engine (ATBM - KMA)  
-> **Base URL:** `https://chas-unshaped-jacalyn.ngrok-free.dev` (hoặc `http://localhost:8000` trên máy tính phát triển)  
+> **Base URL:** địa chỉ máy chủ triển khai (vd. `https://api.ten-mien-cua-ban.vn`), hoặc `https://localhost:8443` khi phát triển  
 > **Phiên bản:** v1.0.0  
 
 ---

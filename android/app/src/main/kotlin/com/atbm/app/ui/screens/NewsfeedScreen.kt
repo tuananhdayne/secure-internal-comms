@@ -1,11 +1,22 @@
 package com.atbm.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.RecordVoiceOver
+import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +30,7 @@ import com.atbm.app.data.api.CreateCommentRequest
 import com.atbm.app.data.api.NetworkClient
 import com.atbm.app.data.api.PostItem
 import com.atbm.app.domain.notification.CaseNotificationManager
+import com.atbm.app.ui.components.DisplayText
 import com.atbm.app.ui.components.DynamicWatermarkBox
 import com.atbm.app.ui.theme.*
 import kotlinx.coroutines.launch
@@ -52,10 +64,10 @@ fun NewsfeedScreen(
                 if (resp.isSuccessful) {
                     posts = resp.body() ?: emptyList()
                 } else {
-                    errorMessage = "Không thể tải bảng tin: ${resp.code()}"
+                    errorMessage = if (resp.code() == 401) "Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại." else "Không thể tải bảng tin lúc này. Vui lòng thử lại."
                 }
             } catch (e: Exception) {
-                errorMessage = "Lỗi kết nối: ${e.localizedMessage}"
+                errorMessage = DisplayText.networkError(e)
             } finally {
                 isLoading = false
             }
@@ -80,19 +92,49 @@ fun NewsfeedScreen(
         employeeCode = employeeCode,
         fullName = "Nhân viên $employeeCode"
     ) {
-        Scaffold(
+        val openPost = selectedPost
+        if (openPost != null) {
+            BackHandler { selectedPost = null; newCommentText = "" }
+            PostDetailScreen(
+                post = openPost,
+                commentText = newCommentText,
+                onCommentChange = { newCommentText = it },
+                onBack = { selectedPost = null; newCommentText = "" },
+                onSend = {
+                    if (newCommentText.isNotBlank()) {
+                        scope.launch {
+                            try {
+                                val resp = NetworkClient.identifiedApi.addComment(
+                                    "Bearer $token", openPost.id, CreateCommentRequest(newCommentText.trim())
+                                )
+                                if (resp.isSuccessful) {
+                                    newCommentText = ""
+                                    val detail = NetworkClient.identifiedApi.getPostDetail("Bearer $token", openPost.id)
+                                    if (detail.isSuccessful && detail.body() != null) selectedPost = detail.body()
+                                    fetchPosts()
+                                } else {
+                                    android.widget.Toast.makeText(context, "Không gửi được bình luận. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, DisplayText.networkError(e), android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            )
+        } else Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
                         Column {
                             Text(
-                                text = "Bảng Tin Nội Bộ",
+                                text = "Bảng tin",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Text(
-                                text = "$employeeCode ($role)",
+                                text = "Xin chào, $employeeCode · ${DisplayText.role(role)}",
                                 fontSize = 11.sp,
                                 color = AccentCyan
                             )
@@ -100,9 +142,6 @@ fun NewsfeedScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = CardDark),
                     actions = {
-                        IconButton(onClick = onNavigateToWhistleblower) {
-                            Text("🛡️", fontSize = 18.sp)
-                        }
                         IconButton(onClick = onNavigateToVault) {
                             BadgedBox(
                                 badge = {
@@ -116,13 +155,22 @@ fun NewsfeedScreen(
                                     }
                                 }
                             ) {
-                                Text("🗄️", fontSize = 18.sp)
+                                Icon(Icons.Outlined.Inventory2, contentDescription = "Tố giác của tôi", tint = TextPrimary)
                             }
                         }
                         IconButton(onClick = onLogout) {
-                            Text("🚪", fontSize = 18.sp)
+                            Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Đăng xuất", tint = TextPrimary)
                         }
                     }
+                )
+            },
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = onNavigateToWhistleblower,
+                    containerColor = AccentCyan,
+                    contentColor = Color(0xFF0F172A),
+                    icon = { Icon(Icons.Outlined.RecordVoiceOver, contentDescription = null) },
+                    text = { Text("Gửi tố giác", fontWeight = FontWeight.SemiBold) }
                 )
             },
             containerColor = BgDark
@@ -144,7 +192,7 @@ fun NewsfeedScreen(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = errorMessage ?: "", color = AccentRed, fontSize = 14.sp)
+                        Text(text = errorMessage ?: "", color = AccentRed, fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = { fetchPosts() }) {
                             Text("Thử lại")
@@ -152,9 +200,8 @@ fun NewsfeedScreen(
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (unreadVaultCount > 0) {
@@ -171,22 +218,37 @@ fun NewsfeedScreen(
                                         modifier = Modifier.padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("🔔", fontSize = 20.sp, modifier = Modifier.padding(end = 10.dp))
+                                        Icon(Icons.Outlined.NotificationsActive, contentDescription = null, tint = Color(0xFFFCA5A5), modifier = Modifier.padding(end = 10.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "Phản Hồi Mới Từ Ban Thanh Tra!",
+                                                text = "Có phản hồi mới từ Ban Thanh tra",
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFFFCA5A5)
                                             )
                                             Text(
-                                                text = "Bạn có $unreadVaultCount hồ sơ tố giác có phản hồi hoặc cập nhật tiến độ mới. Nhấn để mở Hòm Thư Vault.",
+                                                text = "$unreadVaultCount tố giác của bạn vừa được cập nhật. Nhấn để xem chi tiết.",
                                                 fontSize = 11.sp,
                                                 color = TextPrimary
                                             )
                                         }
-                                        Text("➔", color = Color(0xFFFCA5A5), fontSize = 16.sp, modifier = Modifier.padding(start = 6.dp))
+                                        Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Color(0xFFFCA5A5))
                                     }
+                                }
+                            }
+                        }
+                        if (posts.isEmpty()) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 64.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Outlined.Newspaper, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(48.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("Chưa có thông báo nào", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                                    Text("Tin tức và thông báo của công ty sẽ hiển thị tại đây.", fontSize = 12.sp, color = TextSecondary)
                                 }
                             }
                         }
@@ -199,101 +261,6 @@ fun NewsfeedScreen(
                     }
                 }
 
-                // Chi tiết bài viết Modal Dialog
-                if (selectedPost != null) {
-                    val currentPost = selectedPost!!
-                    AlertDialog(
-                        onDismissRequest = { selectedPost = null },
-                        confirmButton = {
-                            Button(onClick = { selectedPost = null }) {
-                                Text("Đóng")
-                            }
-                        },
-                        title = {
-                            Text(
-                                text = currentPost.title,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        },
-                        text = {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = "Đăng bởi: ${currentPost.authorName} • ${currentPost.createdAt.take(16)}",
-                                    fontSize = 11.sp,
-                                    color = TextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = currentPost.content,
-                                    fontSize = 14.sp,
-                                    color = TextPrimary
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                HorizontalDivider(color = BorderDark)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Bình luận (${currentPost.comments?.size ?: 0})",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-
-                                val commentList = currentPost.comments ?: emptyList()
-                                if (commentList.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    commentList.takeLast(3).forEach { c ->
-                                        Text(
-                                            text = "• ${c.authorName}: ${c.content}",
-                                            fontSize = 12.sp,
-                                            color = TextPrimary,
-                                            modifier = Modifier.padding(vertical = 2.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = newCommentText,
-                                    onValueChange = { newCommentText = it },
-                                    placeholder = { Text("Viết bình luận...") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = TextPrimary,
-                                        unfocusedTextColor = TextPrimary
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Button(
-                                    onClick = {
-                                        if (newCommentText.isNotBlank()) {
-                                            scope.launch {
-                                                try {
-                                                    val resp = NetworkClient.identifiedApi.addComment(
-                                                        "Bearer $token",
-                                                        currentPost.id,
-                                                        CreateCommentRequest(newCommentText.trim())
-                                                    )
-                                                    if (resp.isSuccessful) {
-                                                        newCommentText = ""
-                                                        val detailResp = NetworkClient.identifiedApi.getPostDetail("Bearer $token", currentPost.id)
-                                                        if (detailResp.isSuccessful && detailResp.body() != null) {
-                                                            selectedPost = detailResp.body()
-                                                        }
-                                                        fetchPosts()
-                                                    }
-                                                } catch (_: Exception) {}
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text("Gửi bình luận")
-                                }
-                            }
-                        },
-                        containerColor = CardDark
-                    )
-                }
             }
         }
     }
@@ -326,13 +293,14 @@ fun PostCard(post: PostItem, onClick: () -> Unit) {
                         color = AccentAmber.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(4.dp)
                     ) {
-                        Text(
-                            text = "GHIM",
-                            color = AccentAmber,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        ) {
+                            Icon(Icons.Outlined.PushPin, contentDescription = null, tint = AccentAmber, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(text = "Đã ghim", color = AccentAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -353,7 +321,7 @@ fun PostCard(post: PostItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Bởi: ${post.authorName ?: "Ban Giám Đốc"}",
+                    text = "${post.authorName ?: "Ban Giám đốc"} • ${DisplayText.serverDateTime(post.createdAt)}",
                     fontSize = 11.sp,
                     color = AccentCyan
                 )
@@ -362,6 +330,104 @@ fun PostCard(post: PostItem, onClick: () -> Unit) {
                     fontSize = 11.sp,
                     color = TextSecondary
                 )
+            }
+        }
+    }
+}
+
+
+/** Màn hình đọc bài viết toàn trang: nội dung đầy đủ, toàn bộ bình luận, ô bình luận cố định ở cuối. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PostDetailScreen(
+    post: PostItem,
+    commentText: String,
+    onCommentChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onSend: () -> Unit
+) {
+    val comments = post.comments ?: emptyList()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Bài viết", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Quay lại", tint = TextPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardDark)
+            )
+        },
+        bottomBar = {
+            Surface(color = CardDark) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = onCommentChange,
+                        placeholder = { Text("Viết bình luận…") },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = AccentCyan, unfocusedBorderColor = BorderDark
+                        )
+                    )
+                    IconButton(onClick = onSend, enabled = commentText.isNotBlank()) {
+                        Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Gửi bình luận",
+                            tint = if (commentText.isNotBlank()) AccentCyan else TextSecondary)
+                    }
+                }
+            }
+        },
+        containerColor = BgDark
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                if (post.isPinned) {
+                    Text("Đã ghim", color = AccentAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Text(post.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary, lineHeight = 30.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "${post.authorName ?: "Ban Giám đốc"} • ${DisplayText.serverDateTime(post.createdAt)}",
+                    fontSize = 12.sp, color = AccentCyan
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(post.content, fontSize = 16.sp, color = TextPrimary, lineHeight = 25.sp)
+                Spacer(modifier = Modifier.height(20.dp))
+                HorizontalDivider(color = BorderDark)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Bình luận (${comments.size})", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            }
+            if (comments.isEmpty()) {
+                item { Text("Chưa có bình luận. Hãy là người đầu tiên chia sẻ ý kiến.", fontSize = 13.sp, color = TextSecondary) }
+            }
+            items(comments) { c ->
+                Surface(color = CardDark, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(c.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(DisplayText.serverDateTime(c.createdAt), fontSize = 11.sp, color = TextSecondary)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(c.content, fontSize = 14.sp, color = TextPrimary, lineHeight = 20.sp)
+                    }
+                }
             }
         }
     }

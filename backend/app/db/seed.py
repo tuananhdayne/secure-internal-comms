@@ -54,8 +54,8 @@ DEFAULT_POSTS = [
         "content": (
             "Kính gửi toàn thể Cán bộ - Công nhân viên,\n\n"
             "Ban Giám Đốc ban hành chính sách bảo vệ tuyệt đối tính ẩn danh cho nhân viên phản ánh sai phạm. "
-            "Mọi hồ sơ gửi qua Kênh Tố Giác Ẩn danh đều áp dụng chữ ký mù RSA và mã hóa đầu-cuối E2EE, "
-            "không ai (kể cả IT hay Ban Giám Đốc) có thể truy vết danh tính người gửi.\n\n"
+            "Mọi tố giác gửi qua ứng dụng đều được bảo vệ ngay từ điện thoại của người gửi: "
+            "không ai (kể cả bộ phận IT hay Ban Giám Đốc) có thể biết ai là người gửi.\n\n"
             "Trân trọng,\nBan Giám Đốc."
         ),
         "category": "ANNOUNCEMENT",
@@ -63,10 +63,10 @@ DEFAULT_POSTS = [
     },
     {
         "author_code": "AD001",
-        "title": "Thông báo Nâng cấp Hệ thống Xác thực Sinh trắc học & Bảo mật Mobile",
+        "title": "Thông báo cập nhật ứng dụng di động",
         "content": (
-            "Phòng IT Security đã triển khai phiên bản Android App mới tích hợp Room SQLCipher "
-            "và cơ chế Panic PIN khẩn cấp nhằm bảo vệ người dùng trước các rủi ro bị ép buộc mở ứng dụng."
+            "Phiên bản ứng dụng mới đã được phát hành: dữ liệu tố giác lưu trên điện thoại được bảo vệ "
+            "và có thêm chức năng xóa nhanh dữ liệu khi cần. Vui lòng cập nhật ứng dụng."
         ),
         "category": "SECURITY",
         "is_pinned": False

@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.identified import User
+from app.core.permissions import has_permission
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login",
@@ -65,3 +66,16 @@ def require_role(allowed_roles: List[str]) -> Callable:
         return current_user
 
     return role_checker
+
+
+def require_permission(perm: str) -> Callable:
+    """Kiểm tra quyền theo bảng `app.core.permissions.ROLE_PERMISSIONS` (dùng thay cho so vai trò thủ công)."""
+    def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        if not has_permission(current_user.role, perm):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền thực hiện chức năng này.",
+            )
+        return current_user
+
+    return permission_checker

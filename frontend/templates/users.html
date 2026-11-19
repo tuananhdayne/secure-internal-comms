@@ -1,106 +1,96 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Quản Lý Nhân Sự - ATBM{% endblock %}
+{% block title %}Nhân sự · Cổng quản trị nội bộ{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
-        <div style="width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--primary-light); border: 1px solid var(--primary-border); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-        </div>
-        <div>
-            <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">
-                Quản Lý Nhân Sự & Tài Khoản Định Danh
-            </h1>
-            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.15rem;">
-                Cấp quyền, quản lý vai trò và trạng thái hoạt động của nhân viên nội bộ.
-            </p>
-        </div>
+<div class="page-head">
+    <div>
+        <div class="eyebrow">{{ icon('users', 'icon-sm') }} Quản lý nhân sự</div>
+        <h1 class="page-title">Nhân sự &amp; tài khoản</h1>
+        <p class="page-sub">Cấp tài khoản, phân vai trò và khóa / mở khóa quyền truy cập của nhân viên.</p>
+    </div>
+    <div class="page-actions">
+        <a href="#new-user" class="btn btn-primary" data-toggle="#new-user">{{ icon('user-plus', 'icon-sm') }}<span>Thêm nhân viên</span></a>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
-    <!-- Danh sách nhân viên -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                </svg>
+{% set role_map = {
+    'SYSTEM_ADMIN': ('Quản trị', 'badge-danger'),
+    'COMPLIANCE_OFFICER': ('Thanh tra', 'badge-warning'),
+    'BOARD_DIRECTOR': ('Ban giám đốc', 'badge-info'),
+    'BOARD_OF_DIRECTORS': ('Ban giám đốc', 'badge-info'),
+} %}
+
+<div class="stack">
+    <section class="panel collapsible" id="new-user" hidden>
+        <div class="panel-head"><div class="panel-title">{{ icon('user-plus') }}<span>Thêm nhân viên mới</span></div><button type="button" class="icon-btn" data-toggle="#new-user" aria-label="Đóng">{{ icon('x') }}</button></div>
+        <form method="POST" action="/admin/users/create" class="panel-body form-grid">
+            <div class="form-group">
+                <label class="form-label" for="employee_code">Mã nhân viên</label>
+                <input class="form-control font-mono" type="text" id="employee_code" name="employee_code" placeholder="VD: NV010" required>
             </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Danh sách Nhân viên trong hệ thống ({{ users|length }})
-            </h3>
+            <div class="form-group">
+                <label class="form-label" for="full_name">Họ và tên</label>
+                <input class="form-control" type="text" id="full_name" name="full_name" placeholder="VD: Nguyễn Văn A" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="department">Phòng ban</label>
+                <input class="form-control" type="text" id="department" name="department" placeholder="VD: Phòng Kế toán" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="role">Vai trò</label>
+                <select class="form-control" id="role" name="role" required>
+                    <option value="EMPLOYEE">Nhân viên</option>
+                    <option value="BOARD_DIRECTOR">Ban Giám đốc</option>
+                </select>
+                <p class="t-muted" style="font-size:.74rem;margin-top:.4rem;">Tài khoản Cán bộ Thanh tra và Quản trị viên do bộ phận kỹ thuật cấp trên máy chủ, để bảo đảm tách bạch nhiệm vụ.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Mật khẩu khởi tạo</label>
+                <input class="form-control" type="password" id="password" name="password" placeholder="Tối thiểu 8 ký tự" minlength="8" autocomplete="new-password" required>
+            </div>
+            <div class="form-actions"><button type="submit" class="btn btn-primary">{{ icon('user-plus', 'icon-sm') }}<span>Tạo tài khoản</span></button></div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <div class="panel-title">{{ icon('users') }}<span>Danh sách nhân viên</span><span class="count">{{ users|length }}</span></div>
         </div>
-        <div style="overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mã NV</th>
-                        <th>Họ và tên</th>
-                        <th>Phòng ban</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th style="text-align: right;">Thao tác</th>
-                    </tr>
-                </thead>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Nhân viên</th><th>Phòng ban</th><th>Vai trò</th><th>Trạng thái</th><th class="t-right">Thao tác</th></tr></thead>
                 <tbody>
                     {% for u in users %}
+                    {% set r = role_map.get(u.role, ('Nhân viên', 'badge-neutral')) %}
                     <tr>
-                        <td>
-                            <span class="font-mono" style="color: var(--primary); font-size: 0.84rem; font-weight: 600; background: var(--primary-light); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--primary-border);">
-                                {{ u.employee_code }}
-                            </span>
+                        <td class="td-title">
+                            <div style="display:flex;align-items:center;gap:.7rem;">
+                                <span class="avatar {{ 'officer' if u.role == 'COMPLIANCE_OFFICER' }}" style="width:34px;height:34px;font-size:.82rem;{% if u.role not in ('COMPLIANCE_OFFICER','SYSTEM_ADMIN') %}background:linear-gradient(135deg,#64748b,#94a3b8);{% endif %}">{{ (u.full_name.split()[-1] if u.full_name else '?')[:1] }}</span>
+                                <div style="min-width:0;">
+                                    <div class="t-strong">{{ u.full_name }}</div>
+                                    <div class="font-mono t-muted" style="font-size:.76rem;">{{ u.employee_code }}</div>
+                                </div>
+                            </div>
                         </td>
-                        <td style="font-weight: 600; color: var(--text-primary);">{{ u.full_name }}</td>
-                        <td style="color: var(--text-secondary);">{{ u.department }}</td>
-                        <td>
-                            {% if u.role == "SYSTEM_ADMIN" %}
-                            <span class="badge badge-danger">ADMIN</span>
-                            {% elif u.role == "COMPLIANCE_OFFICER" %}
-                            <span class="badge badge-warning">OFFICER</span>
-                            {% elif u.role in ("BOARD_DIRECTOR", "BOARD_OF_DIRECTORS") %}
-                            <span class="badge badge-info">DIRECTOR</span>
-                            {% else %}
-                            <span class="badge badge-success">EMPLOYEE</span>
-                            {% endif %}
+                        <td data-label="Phòng ban">{{ u.department }}</td>
+                        <td data-label="Vai trò"><span class="badge {{ r[1] }}">{{ r[0] }}</span></td>
+                        <td data-label="Trạng thái">
+                            {% if u.is_active %}<span class="badge badge-success"><span class="status-dot"></span>Hoạt động</span>
+                            {% else %}<span class="badge badge-danger"><span class="status-dot"></span>Đã khóa</span>{% endif %}
                         </td>
-                        <td>
-                            {% if u.is_active %}
-                            <span class="badge badge-success">
-                                <span class="status-dot" style="background: var(--accent-emerald);"></span>
-                                <span>Hoạt động</span>
-                            </span>
-                            {% else %}
-                            <span class="badge badge-danger">
-                                <span class="status-dot" style="background: var(--accent-rose);"></span>
-                                <span>Đã khóa</span>
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            {% if u.role != "SYSTEM_ADMIN" %}
-                            <form method="POST" action="/admin/users/toggle/{{ u.id }}" style="display: inline;">
+                        <td class="td-actions t-right">
+                            {% if u.role not in privileged_roles %}
+                            <form method="POST" action="/admin/users/toggle/{{ u.id }}" style="display:inline;">
                                 {% if u.is_active %}
-                                <button type="submit" class="btn btn-sm" style="background: var(--status-danger-bg); color: var(--status-danger-text); border: 1px solid var(--status-danger-border);">
-                                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                    </svg>
-                                    <span>Khóa</span>
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-danger-soft">{{ icon('lock', 'icon-sm') }}<span>Khóa</span></button>
                                 {% else %}
-                                <button type="submit" class="btn btn-sm" style="background: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-border);">
-                                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-                                    </svg>
-                                    <span>Mở khóa</span>
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-success-soft">{{ icon('unlock', 'icon-sm') }}<span>Mở khóa</span></button>
                                 {% endif %}
                             </form>
                             {% else %}
-                            <span style="font-size: 0.78rem; color: var(--text-muted);">(Mặc định)</span>
+                            <span class="t-muted" title="Tài khoản Thanh tra / Quản trị do bộ phận kỹ thuật quản lý trên máy chủ">Quản lý trên máy chủ</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -108,52 +98,8 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-    <!-- Thêm nhân viên mới -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-                </svg>
-            </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Thêm Nhân Viên Mới
-            </h3>
-        </div>
-        <form method="POST" action="/admin/users/create">
-            <div class="form-group">
-                <label class="form-label" for="employee_code">Mã nhân viên</label>
-                <input class="form-control" type="text" id="employee_code" name="employee_code" placeholder="VD: NV010" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="full_name">Họ và tên</label>
-                <input class="form-control" type="text" id="full_name" name="full_name" placeholder="Nguyễn Văn A" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="department">Phòng ban</label>
-                <input class="form-control" type="text" id="department" name="department" placeholder="Khối Công nghệ Thông tin" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="role">Vai trò</label>
-                <select class="form-control" id="role" name="role" required>
-                    <option value="EMPLOYEE">EMPLOYEE (Nhân viên)</option>
-                    <option value="COMPLIANCE_OFFICER">COMPLIANCE_OFFICER (Ban Thanh tra)</option>
-                    <option value="BOARD_DIRECTOR">BOARD_DIRECTOR (Ban Giám đốc)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="password">Mật khẩu khởi tạo</label>
-                <input class="form-control" type="password" id="password" name="password" placeholder="Tối thiểu 8 ký tự" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.68rem; font-weight: 600;">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-                </svg>
-                <span>Tạo Tài Khoản</span>
-            </button>
-        </form>
-    </div>
+
 </div>
 {% endblock %}

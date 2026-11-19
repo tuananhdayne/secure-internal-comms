@@ -1,0 +1,50 @@
+/* CSS riêng của templates/login.html (dùng biến từ admin.css). */
+.auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+.auth-art {
+    position: relative; overflow: hidden; color: #dbe3f3;
+    padding: 3rem clamp(2rem, 5vw, 4.5rem); display: flex; flex-direction: column; justify-content: space-between;
+    background:
+        radial-gradient(80% 60% at 10% 0%, rgba(58,99,240,.45), transparent 60%),
+        radial-gradient(60% 50% at 100% 100%, rgba(16,185,129,.18), transparent 60%),
+        linear-gradient(180deg, #0b1120, #0f1830);
+}
+.auth-art::before {
+    content: ""; position: absolute; inset: 0; opacity: .5; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(70% 70% at 30% 30%, #000 30%, transparent 75%);
+}
+.auth-art > * { position: relative; }
+.art-brand { display: flex; align-items: center; gap: .8rem; color: #fff; font-weight: 700; font-size: 1.05rem; }
+.art-title { font-size: clamp(1.8rem, 3vw, 2.55rem); line-height: 1.15; letter-spacing: -0.03em; color: #fff; font-weight: 700; max-width: 17ch; }
+.art-title em { font-style: normal; background: linear-gradient(90deg, #8ea7ff, #5eead4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.art-lead { margin-top: 1rem; color: #a7b2c7; max-width: 46ch; font-size: .95rem; }
+.features { display: grid; gap: .75rem; margin-top: 2.25rem; max-width: 460px; }
+.feature { display: flex; gap: .85rem; align-items: flex-start; padding: .85rem 1rem; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); }
+.feature-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: rgba(109,140,255,.16); color: #a9bbff; }
+.feature b { color: #fff; font-weight: 600; font-size: .9rem; display: block; }
+.feature span { font-size: .8rem; color: #94a1b8; }
+.art-foot { font-size: .76rem; color: #6c7a94; }
+
+.auth-form { display: flex; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; background: var(--bg-base); }
+.auth-card { width: 100%; max-width: 400px; }
+.auth-card h1 { font-size: 1.6rem; letter-spacing: -0.025em; }
+.auth-card .page-sub { margin-bottom: 1.75rem; }
+.pw-wrap { position: relative; }
+.pw-wrap .form-control { padding-right: 2.75rem; }
+.pw-toggle { position: absolute; right: .45rem; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: 0; background: none; color: var(--text-muted); border-radius: 8px; cursor: pointer; display: grid; place-items: center; }
+.pw-toggle:hover { background: var(--bg-muted); color: var(--text-primary); }
+.demo { margin-top: 1.5rem; border: 1px dashed var(--border-strong); border-radius: 12px; padding: .9rem 1rem; font-size: .82rem; color: var(--text-secondary); }
+.demo-title { display: flex; align-items: center; gap: .4rem; font-weight: 600; color: var(--text-primary); margin-bottom: .55rem; }
+.demo-row { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .3rem 0; }
+.demo-fill { border: 0; background: none; color: var(--primary); font-weight: 600; font-size: .78rem; cursor: pointer; padding: .2rem .4rem; border-radius: 6px; }
+.demo-fill:hover { background: var(--primary-light); }
+.m-brand { display: none; }
+
+@media (max-width: 900px) {
+    .auth { grid-template-columns: 1fr; }
+    .auth-art { display: none; }
+    .auth-form { align-items: flex-start; padding-top: 2.5rem; }
+    .m-brand { display: flex; align-items: center; gap: .7rem; margin-bottom: 2rem; font-weight: 700; }
+    .m-brand .brand-mark { width: 40px; height: 40px; }
+}

@@ -6,7 +6,7 @@ from app.db.session import engine, SessionLocal, Base
 from app.models.identified import User
 from app.core.security import get_password_hash, create_access_token
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine, simulate_client_blinding, simulate_client_unblinding
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message, simulate_client_blinding
 from app.api.v1.compliance import router as compliance_router
 
 app = FastAPI()
@@ -58,7 +58,7 @@ def test_blind_sign_flow_and_quota_enforcement():
     e, n = key_manager.rsa_public_numbers
 
     # Giả lập hồ sơ tố cáo & tính H
-    H = BlindSignatureEngine.compute_payload_hash(
+    H = payload_message(
         category="THAM_NHUNG",
         encrypted_title="enc_title",
         encrypted_description="enc_desc",
@@ -68,7 +68,7 @@ def test_blind_sign_flow_and_quota_enforcement():
     )
 
     # 2. Client làm mù: m* = (H * r^e) mod N
-    m_star, r = simulate_client_blinding(H, e, n)
+    m_star, r, _m_enc = client_blind(H, e, n)
 
     # 3. Gửi xin ký mù lần 1
     resp1 = client.post(
@@ -82,7 +82,7 @@ def test_blind_sign_flow_and_quota_enforcement():
     s_star = int(data1["blind_signature"], 16)
 
     # 4. Client bóc mù: s = (s* * r^-1) mod N
-    s = simulate_client_unblinding(s_star, r, n)
+    s = client_finalize(s_star, r, _m_enc, e, n)
 
     # 5. Xác minh chữ ký mù toàn vẹn: s^e mod N == H
     assert BlindSignatureEngine.verify(H, s) is True

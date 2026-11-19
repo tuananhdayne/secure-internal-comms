@@ -70,7 +70,11 @@ def client():
 def test_admin_login_page_renders(client: TestClient):
     response = client.get("/admin/login")
     assert response.status_code == 200
-    assert "Đăng nhập Quản trị viên" in response.text or "Admin" in response.text
+    assert "Đăng nhập cổng quản trị" in response.text
+    # Bản bàn giao: không lộ tài khoản dùng thử / thuật ngữ kỹ thuật trên trang đăng nhập
+    assert "admin123" not in response.text
+    for term in ("ECIES", "RSA", "E2EE", "AES-GCM"):
+        assert term not in response.text
 
 
 def test_admin_login_and_dashboard_access(client: TestClient):
@@ -290,3 +294,11 @@ def test_compliance_officer_web_portal_access_and_actions(client: TestClient):
     for m in anon_messages:
         assert "Phản hồi điều tra bảo mật E2EE" not in m["digital_signature"]
         assert m["digital_signature"] == "OFFICER_P256_VERIFIED_SIGNATURE"
+
+
+def test_case_code_matches_mobile_rule():
+    """Mã rút gọn phải trùng với DisplayText.shortCaseCode trên app."""
+    from app.api.admin_web import _case_code
+    assert _case_code("CASE-1795012984047") == "#984047"
+    assert _case_code("CASE-0123456789abcdef0123456789a9f3a2c") == "#9F3A2C"
+    assert _case_code("") == "#"

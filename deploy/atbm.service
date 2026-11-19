@@ -1,0 +1,30 @@
+# systemd — chạy backend sau Caddy. Cài đặt:
+#   sudo cp deploy/atbm.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now atbm
+# Giả định mã nguồn ở /opt/atbm, người dùng hệ thống `atbm`, venv ở /opt/atbm/backend/.venv.
+[Unit]
+Description=Cong Noi Bo - backend FastAPI
+After=network.target
+
+[Service]
+User=atbm
+Group=atbm
+WorkingDirectory=/opt/atbm/backend
+EnvironmentFile=/opt/atbm/backend/.env
+# Chạy kiểm tra cấu hình trước; dừng nếu còn mục CHƯA ĐẠT
+ExecStartPre=/opt/atbm/backend/.venv/bin/python scripts/preflight.py --strict
+# --proxy-headers + forwarded-allow-ips: tin X-Forwarded-Proto từ Caddy (cookie Secure, HSTS).
+# --no-access-log: access log mặc định của uvicorn ghi IP.
+ExecStart=/opt/atbm/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 \
+          --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-access-log
+Restart=on-failure
+# Gia cố tiến trình
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/atbm/backend
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,97 +1,91 @@
+"""Cụm 2 — REST API cho Ban Thanh tra (JWT, vai trò COMPLIANCE_OFFICER).
+
+Web Admin dùng cùng nghiệp vụ qua `app.services.case_crypto`; module này chỉ lo HTTP.
+"""
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from app.api.deps import require_permission
+from app.core.permissions import Perm
+from app.core.constants import CaseStatus, Role, SenderType
 from app.db.session import get_db
+from app.models.anonymous import CaseEvidence, CaseMessage, WhistleCase
 from app.models.identified import User
-from app.models.anonymous import WhistleCase, CaseMessage
-from app.crypto.key_manager import key_manager
-from app.crypto.ecies import ecies_decrypt
-from app.schemas.officer import (
-    OfficerCaseSummary,
-    DecryptedCaseResponse,
-    CaseStatusUpdate,
-    OfficerReplyRequest
-)
 from app.schemas.anonymous import CaseEvidenceResponse, CaseMessageResponse
-from app.api.deps import require_role
+from app.schemas.officer import CaseStatusUpdate, DecryptedCaseResponse, OfficerCaseSummary, OfficerReplyRequest
+from app.services.case_crypto import decrypt_case_payload
+from app.services.evidence import evidence_response, is_placeholder
+from app.core.config import settings
+from app.services.audit import Action, record as audit
 
 router = APIRouter(tags=["Officer Investigation"])
+officer_only = require_permission(Perm.CASE_MANAGE)
+
+ERR_CASE_NOT_FOUND = "Hồ sơ tố giác không tồn tại."
+
+
+def _get_case(db: Session, case_id: int, *, with_children: bool = False) -> WhistleCase:
+    query = db.query(WhistleCase)
+    query = query.options(joinedload(WhistleCase.evidences))
+    if with_children:
+        query = query.options(joinedload(WhistleCase.messages))
+    case = query.filter(WhistleCase.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERR_CASE_NOT_FOUND)
+    return case
+
+
+def _summary(case: WhistleCase) -> OfficerCaseSummary:
+    return OfficerCaseSummary(
+        id=case.id,
+        case_token=case.case_token,
+        category=case.category,
+        status=case.status,
+        created_bucket=case.created_bucket,
+        evidences_count=len(case.evidences),
+    )
 
 
 @router.get("/cases", response_model=List[OfficerCaseSummary])
 def list_cases_for_investigation(
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
 ) -> List[OfficerCaseSummary]:
-    """Danh sách tất cả các vụ việc tố giác sai phạm dành riêng cho Ban Thanh tra."""
+    """Danh sách tất cả hồ sơ tố giác (mới nhất trước)."""
     cases = db.query(WhistleCase).options(joinedload(WhistleCase.evidences)).order_by(WhistleCase.id.desc()).all()
-
-    results = []
-    for c in cases:
-        results.append(OfficerCaseSummary(
-            id=c.id,
-            case_token=c.case_token,
-            category=c.category,
-            status=c.status,
-            created_bucket=c.created_bucket,
-            evidences_count=len(c.evidences)
-        ))
-    return results
+    return [_summary(c) for c in cases]
 
 
 @router.get("/cases/{case_id}/decrypt", response_model=DecryptedCaseResponse)
 def decrypt_case_details(
     case_id: int,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
 ) -> DecryptedCaseResponse:
-    """Ban Thanh tra sử dụng Khóa riêng ECC P-256 (Officer_Chat_PrivateKey) để giải mã hồ sơ tố giác.
-    
-    Chỉ duy nhất Ban Thanh tra mới sở hữu khóa riêng này. DBA và System Admin không thể xem nội dung.
-    """
-    case = db.query(WhistleCase).options(
-        joinedload(WhistleCase.evidences),
-        joinedload(WhistleCase.messages)
-    ).filter(WhistleCase.id == case_id).first()
-
-    if not case:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Hồ sơ tố giác không tồn tại."
-        )
-
-    # Giải mã ECIES
-    try:
-        decrypted_bytes = ecies_decrypt(
-            recipient_priv_key=key_manager.ec_private_key,
-            ephemeral_pub_hex=case.payload_ephemeral_pub,
-            iv_hex=case.payload_iv,
-            ciphertext_hex=case.encrypted_description,
-            tag_hex=case.payload_auth_tag
-        )
-        decrypted_text = decrypted_bytes.decode("utf-8")
-        if "|||" in decrypted_text:
-            title, desc = decrypted_text.split("|||", 1)
-        else:
-            title = "Tiêu đề đã giải mã"
-            desc = decrypted_text
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Lỗi giải mã hồ sơ: {str(e)}"
-        )
-
+    """Giải mã hồ sơ bằng khóa riêng EC của Ban Thanh tra (DBA / Admin không có khóa này)."""
+    case = _get_case(db, case_id, with_children=True)
+    plain = decrypt_case_payload(case)
+    audit(db, current_user, Action.CASE_VIEW, f"case:{case.id}")
+    if not plain.ok:
+        # Chi tiết lỗi mật mã chỉ ghi log (decrypt_case_payload đã log), không trả cho client.
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Không thể giải mã hồ sơ này.")
     return DecryptedCaseResponse(
         id=case.id,
         case_token=case.case_token,
         category=case.category,
         status=case.status,
-        decrypted_title=title,
-        decrypted_description=desc,
+        decrypted_title=plain.title,
+        decrypted_description=plain.description,
         created_bucket=case.created_bucket,
-        evidences=[CaseEvidenceResponse.model_validate(e) for e in case.evidences],
-        messages=[CaseMessageResponse.model_validate(m) for m in case.messages]
+        evidences=[
+            CaseEvidenceResponse(id=e.id, file_url=f"{settings.API_V1_STR}/officer/evidence/{e.id}",
+                                 file_sha256_hash=e.file_sha256_hash, mime_type=e.mime_type)
+            for e in case.evidences if not is_placeholder(e.file_url, e.mime_type)
+        ],
+        messages=[CaseMessageResponse.model_validate(m) for m in case.messages],
     )
 
 
@@ -99,65 +93,61 @@ def decrypt_case_details(
 def update_case_status(
     case_id: int,
     status_in: CaseStatusUpdate,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
 ) -> OfficerCaseSummary:
-    """Cập nhật trạng thái xử lý vụ việc (PENDING, INVESTIGATING, UNDER_INVESTIGATION, RESOLVED, REJECTED)."""
-    case = db.query(WhistleCase).options(joinedload(WhistleCase.evidences)).filter(WhistleCase.id == case_id).first()
-    if not case:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Hồ sơ tố giác không tồn tại."
-        )
-
+    """Cập nhật trạng thái thụ lý (giá trị hợp lệ: `CaseStatus.ALL`)."""
+    case = _get_case(db, case_id)
     new_status = status_in.status.strip().upper()
-    valid_statuses = {"PENDING", "RECEIVED", "INVESTIGATING", "UNDER_INVESTIGATION", "RESOLVED", "REJECTED"}
-    if new_status not in valid_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Trạng thái không hợp lệ: {new_status}"
-        )
-
+    if new_status not in CaseStatus.ALL:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Trạng thái không hợp lệ: {new_status}")
+    old = case.status
     case.status = new_status
     db.commit()
+    audit(db, current_user, Action.CASE_STATUS, f"case:{case.id}", f"{old} → {new_status}")
     db.refresh(case)
-
-    return OfficerCaseSummary(
-        id=case.id,
-        case_token=case.case_token,
-        category=case.category,
-        status=case.status,
-        created_bucket=case.created_bucket,
-        evidences_count=len(case.evidences)
-    )
+    return _summary(case)
 
 
 @router.post("/cases/{case_id}/reply", response_model=CaseMessageResponse, status_code=status.HTTP_201_CREATED)
 def reply_to_anonymous_whistleblower(
     case_id: int,
     reply_in: OfficerReplyRequest,
-    current_user: User = Depends(require_role(["COMPLIANCE_OFFICER"])),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
 ) -> CaseMessageResponse:
-    """Ban Thanh tra gửi tin nhắn điều tra E2EE tới người tố giác (sử dụng case_public_key của vụ việc)."""
-    case = db.query(WhistleCase).filter(WhistleCase.id == case_id).first()
-    if not case:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Hồ sơ tố giác không tồn tại."
-        )
-
-    new_msg = CaseMessage(
+    """Lưu tin nhắn E2EE mà client của Thanh tra đã tự mã hóa tới `case_public_key`."""
+    case = _get_case(db, case_id)
+    message = CaseMessage(
         case_id=case.id,
-        sender_type="COMPLIANCE_OFFICER",
+        sender_type=SenderType.OFFICER,
         ephemeral_pub_key=reply_in.ephemeral_pub_key.strip(),
         nonce_iv=reply_in.nonce_iv.strip(),
         encrypted_message=reply_in.encrypted_message.strip(),
         auth_tag=reply_in.auth_tag.strip(),
-        digital_signature=reply_in.digital_signature.strip()
+        digital_signature=reply_in.digital_signature.strip(),
     )
-    db.add(new_msg)
+    db.add(message)
     db.commit()
-    db.refresh(new_msg)
+    audit(db, current_user, Action.CASE_REPLY, f"case:{case.id}")
+    db.refresh(message)
+    return CaseMessageResponse.model_validate(message)
 
-    return CaseMessageResponse.model_validate(new_msg)
+
+@router.get("/evidence/{evidence_id}")
+def download_evidence(
+    evidence_id: int,
+    download: int = 0,
+    current_user: User = Depends(officer_only),
+    db: Session = Depends(get_db),
+):
+    """Tải tệp bằng chứng đã giải mã (chỉ Cán bộ Thanh tra)."""
+    ev = db.query(CaseEvidence).filter(CaseEvidence.id == evidence_id).first()
+    if not ev:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tệp bằng chứng.")
+    try:
+        resp = evidence_response(ev.file_url, ev.mime_type, download=bool(download))
+        audit(db, current_user, Action.EVIDENCE_DOWNLOAD, f"case:{ev.case_id}", f"tệp #{ev.id}")
+        return resp
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tệp bằng chứng không khả dụng.")

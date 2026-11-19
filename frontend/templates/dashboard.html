@@ -1,177 +1,87 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Bảng Điều Khiển Quản Trị - ATBM{% endblock %}
+{% block title %}Tổng quan · Cổng quản trị nội bộ{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
-        <div style="width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--primary-light); border: 1px solid var(--primary-border); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
-            </svg>
-        </div>
-        <div>
-            <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">
-                Bảng Điều Khiển Quản Trị
-            </h1>
-            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.15rem;">
-                Theo dõi tổng quan tài nguyên hệ thống, trạng thái truyền thông và cryptographic keys.
-            </p>
-        </div>
-    </div>
+<div class="page-head">
     <div>
-        <span class="badge badge-success" style="padding: 0.45rem 0.95rem; font-size: 0.82rem;">
-            <span class="status-dot" style="background: var(--accent-emerald);"></span>
-            <span>Hệ thống đang hoạt động an toàn</span>
-        </span>
+        <div class="eyebrow">{{ icon('activity', 'icon-sm') }} Tổng quan</div>
+        <h1 class="page-title">Tổng quan</h1>
+        <p class="page-sub">Tình hình nhân sự và bảng tin nội bộ.</p>
+    </div>
+    <div class="page-actions">
+        <span class="badge badge-success" style="padding:.4rem .85rem;"><span class="pulse"></span>Hệ thống hoạt động bình thường</span>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-    <!-- Nhân viên -->
-    <div class="card" style="margin-bottom: 0; padding: 1.35rem 1.45rem;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Tổng số Nhân viên</div>
-            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-            </div>
-        </div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.4rem; color: var(--text-primary); letter-spacing: -0.02em;">{{ stats.total_users }}</div>
-        <div style="font-size: 0.78rem; color: var(--primary); margin-top: 0.2rem; font-weight: 500;">Được cấp tài khoản định danh</div>
+<div class="stats">
+    <div class="stat tone-blue">
+        <div class="stat-top"><span class="stat-label">Tổng nhân viên</span><span class="stat-ico">{{ icon('users', 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <div class="stat-foot">Tài khoản đã cấp</div>
     </div>
-
-    <!-- Ban Thanh Tra -->
-    <div class="card" style="margin-bottom: 0; padding: 1.35rem 1.45rem;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Ban Thanh Tra (Officers)</div>
-            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--status-success-bg); display: flex; align-items: center; justify-content: center; color: var(--accent-emerald);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
-                </svg>
-            </div>
-        </div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.4rem; color: var(--accent-emerald); letter-spacing: -0.02em;">{{ stats.officer_users }}</div>
-        <div style="font-size: 0.78rem; color: var(--status-success-text); margin-top: 0.2rem; font-weight: 500;">Nắm giữ cặp khóa RSA & EC Private</div>
+    <div class="stat tone-green">
+        <div class="stat-top"><span class="stat-label">Ban Thanh tra</span><span class="stat-ico">{{ icon('scale', 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ stats.officer_users }}</div>
+        <div class="stat-foot">Cán bộ xử lý tố giác</div>
     </div>
-
-    <!-- Tin tức -->
-    <div class="card" style="margin-bottom: 0; padding: 1.35rem 1.45rem;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Tin Tức & Thông Báo</div>
-            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: #f0fdf4; display: flex; align-items: center; justify-content: center; color: #0284c7;">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
-                </svg>
-            </div>
-        </div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.4rem; color: #0284c7; letter-spacing: -0.02em;">{{ stats.total_posts }}</div>
-        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem; font-weight: 500;">{{ stats.total_comments }} lượt bình luận nội bộ</div>
+    <div class="stat tone-sky">
+        <div class="stat-top"><span class="stat-label">Bài truyền thông</span><span class="stat-ico">{{ icon('news', 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ stats.total_posts }}</div>
+        <div class="stat-foot">{{ stats.total_comments }} bình luận nội bộ</div>
     </div>
-
-    <!-- Tố giác -->
-    <div class="card" style="margin-bottom: 0; padding: 1.35rem 1.45rem;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Hồ Sơ Tố Giác Tiếp Nhận</div>
-            <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--status-warning-bg); display: flex; align-items: center; justify-content: center; color: var(--accent-amber);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-            </div>
-        </div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.4rem; color: var(--accent-amber); letter-spacing: -0.02em;">{{ stats.total_cases }}</div>
-        <div style="font-size: 0.78rem; color: var(--status-warning-text); margin-top: 0.2rem; font-weight: 500;">Zero-Knowledge: Phân tầng bảo mật</div>
+    <div class="stat tone-amber">
+        <div class="stat-top"><span class="stat-label">Tài khoản bị khóa</span><span class="stat-ico">{{ icon('lock', 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ stats.locked_users }}</div>
+        <div class="stat-foot">Đang tạm ngưng truy cập</div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
-    <!-- Bảng thông báo -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
-                </svg>
-            </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Bài viết thông báo mới nhất
-            </h3>
+<div class="grid-main">
+    <section class="panel">
+        <div class="panel-head">
+            <div class="panel-title">{{ icon('news') }}<span>Bài viết mới nhất</span></div>
+            <a href="/admin/posts" class="btn btn-secondary btn-sm">Xem tất cả</a>
         </div>
-        <div style="overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tiêu đề</th>
-                        <th>Tác giả</th>
-                        <th>Ngày đăng</th>
-                        <th>Ghim</th>
-                    </tr>
-                </thead>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Tiêu đề</th><th>Tác giả</th><th>Ngày đăng</th><th class="t-right">Ghim</th></tr></thead>
                 <tbody>
                     {% for post in latest_posts %}
                     <tr>
-                        <td style="font-weight: 600; color: var(--text-primary);">{{ post.title }}</td>
-                        <td style="color: var(--text-secondary);">{{ post.author.full_name }}</td>
-                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
-                            {% if post.is_pinned %}
-                            <span class="badge badge-warning">
-                                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
-                                </svg>
-                                <span>Đã ghim</span>
-                            </span>
-                            {% else %}
-                            <span style="color: var(--text-muted); font-size: 0.75rem;">-</span>
-                            {% endif %}
+                        <td class="td-title t-strong">{{ post.title }}</td>
+                        <td data-label="Tác giả" class="nowrap">{{ post.author.full_name if post.author else 'Hệ thống' }}</td>
+                        <td data-label="Ngày đăng" class="t-muted nowrap">{{ post.created_at|local_dt }}</td>
+                        <td data-label="Ghim" class="t-right">
+                            {% if post.is_pinned %}<span class="badge badge-warning">{{ icon('pin', 'icon-sm') }}Đã ghim</span>{% else %}<span class="t-muted">—</span>{% endif %}
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">Chưa có bài viết nào</td>
-                    </tr>
+                    <tr><td colspan="4"><div class="empty"><div class="empty-ico">{{ icon('news') }}</div><div class="empty-title">Chưa có bài viết nào</div></div></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-    <!-- Trạng thái mật mã -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--status-info-bg); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-            </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Trạng thái An ninh & Mật mã
-            </h3>
+    <section class="panel">
+        <div class="panel-head"><div class="panel-title">{{ icon('activity') }}<span>Thao tác nhanh</span></div></div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:.7rem;">
+            {% for href, ico, label, desc, tone in [
+                ('/admin/users#new-user', 'user-plus', 'Thêm nhân viên', 'Cấp tài khoản đăng nhập ứng dụng cho nhân viên mới', 'blue'),
+                ('/admin/posts#new-post', 'send', 'Đăng thông báo', 'Gửi tin tức, chính sách tới bảng tin của toàn bộ nhân viên', 'green'),
+                ('/admin/users', 'lock', 'Khóa / mở khóa tài khoản', 'Tạm ngưng truy cập khi nhân viên nghỉ việc hoặc mất thiết bị', 'amber'),
+            ] %}
+            <a href="{{ href }}" style="display:flex;gap:.8rem;align-items:center;padding:.85rem .9rem;border-radius:12px;background:var(--bg-muted);border:1px solid var(--border-subtle);color:inherit;text-decoration:none;">
+                <span class="stat-ico tone-{{ tone }}" style="width:32px;height:32px;flex-shrink:0;">{{ icon(ico, 'icon-sm') }}</span>
+                <span style="min-width:0;">
+                    <span style="display:block;font-weight:600;font-size:.88rem;">{{ label }}</span>
+                    <span style="display:block;font-size:.76rem;color:var(--text-muted);">{{ desc }}</span>
+                </span>
+            </a>
+            {% endfor %}
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.86rem;">
-            <div style="padding: 0.85rem 1rem; background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
-                <div style="color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Officer Blind Sign Key</div>
-                <div style="font-weight: 700; color: var(--accent-emerald); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.45rem;">
-                    <span class="status-dot" style="background: var(--accent-emerald);"></span>
-                    <span>RSA-2048 (Active)</span>
-                </div>
-            </div>
-            <div style="padding: 0.85rem 1rem; background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
-                <div style="color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Officer E2EE Chat Key</div>
-                <div style="font-weight: 700; color: var(--primary); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.45rem;">
-                    <span class="status-dot" style="background: var(--primary);"></span>
-                    <span>ECC SECP256R1 (Active)</span>
-                </div>
-            </div>
-            <div style="padding: 0.85rem 1rem; background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
-                <div style="color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Chính sách Quota ký mù</div>
-                <div style="font-weight: 700; color: var(--accent-amber); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.45rem;">
-                    <span class="status-dot" style="background: var(--accent-amber);"></span>
-                    <span>5 lượt / nhân viên / tuần</span>
-                </div>
-            </div>
-        </div>
-    </div>
+    </section>
 </div>
 {% endblock %}

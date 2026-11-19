@@ -6,7 +6,7 @@
 [![Android](https://img.shields.io/badge/Mobile-Android_Kotlin%20%7C%20Compose-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![SQLCipher](https://img.shields.io/badge/Database-SQLCipher_AES__256-003B57?logo=sqlite&logoColor=white)](https://www.zetetic.net/sqlcipher/)
 [![Tests](https://img.shields.io/badge/Security_Tests-5%2F5%20PASS-success)](backend/run_security_tests.py)
-[![Pytest](https://img.shields.io/badge/Pytest-52%2F52%20PASS-brightgreen)](backend/tests/)
+[![Pytest](https://img.shields.io/badge/Pytest-67%2F67%20PASS-brightgreen)](backend/tests/)
 
 > **Đồ án Chuyên ngành An toàn Bảo mật Hệ thống Thông tin — Học viện Kỹ thuật Mật mã (KMA)**  
 > **Đề tài**: Xây dựng Hệ thống Truyền thông Nội bộ Doanh nghiệp kết hợp Cổng Tố Giác Sai Phạm Ẩn Danh (*Zero-Knowledge Whistleblower Engine*) ứng dụng **Chữ ký mù RSA Chaum (RSA-2048)**, **Mã hóa lai ECIES (ECC P-256 + HKDF-SHA256 + AES-256-GCM)**, **Kênh trao đổi E2EE hai chiều**, **Kho dữ liệu cục bộ an toàn SQLCipher Vault** và **Cơ chế Tiêu hủy Khẩn cấp Panic PIN**.
@@ -15,7 +15,9 @@
 
 ## 📸 Hình Ảnh Giao Diện Thực Tế (Visual Interface Showcase)
 
-Giao diện Web Admin và Cổng Thanh tra được thiết kế theo phong cách **Modern Slate & Executive Navy** chuyên nghiệp, trang nhã, dịu mắt và tối ưu chuẩn công thái học cho cơ quan quản lý an ninh, tư pháp:
+Giao diện Web Admin và Cổng Thanh tra theo phong cách bảng điều khiển an ninh (thanh bên tối, nội dung sáng, phông Be Vietnam Pro), **responsive tới màn hình điện thoại** (bảng tự chuyển thành thẻ, menu ngăn kéo):
+
+![Giao diện trên Pixel 8](docs/screenshots/mobile_overview.png)
 
 ### 1. Cổng Tiếp Nhận & Thụ Lý Hồ Sơ Tố Giác Ẩn Danh (Ban Thanh Tra)
 > Tiếp nhận hồ sơ sai phạm ẩn danh được mã hóa ECIES P-256, phân nhóm trạng thái (`PENDING`, `INVESTIGATING`, `RESOLVED`, `REJECTED`) và làm mờ thời gian gửi (`created_bucket`).
@@ -120,39 +122,23 @@ flowchart TD
 
 ```text
 atbm/
-├── README.md                          # Tổng quan dự án, kiến trúc & hướng dẫn khởi chạy
-├── frontend/                          # Phân hệ Giao diện Web (Quản trị viên & Ban Thanh tra)
-│   ├── templates/                     # 6 giao diện Web Jinja2 (Modern Slate & Executive Navy)
-│   └── static/                        # Tài nguyên tĩnh CSS, JS, hình ảnh
-├── backend/                           # Phân hệ Máy chủ (FastAPI + SQLAlchemy + Cryptography)
-│   ├── .env.example                   # Mẫu cấu hình môi trường chuẩn
-│   ├── requirements.txt               # Danh mục thư viện phụ thuộc Python
-│   ├── run_security_tests.py          # Bộ kiểm toán 5 kịch bản bảo mật cốt lõi KMA
-│   ├── app/
-│   │   ├── main.py                    # Khởi tạo FastAPI & Zero-Knowledge Middleware
-│   │   ├── core/                      # Cấu hình bảo mật (`config.py`) & JWT/Hashing (`security.py`)
-│   │   ├── crypto/                    # Mật mã học: `blind_signature.py`, `ecies.py`, `key_manager.py`, `sanitizer.py`
-│   │   ├── db/                        # Kết nối CSDL (`session.py`) & nạp dữ liệu mẫu (`seed.py`)
-│   │   ├── models/                    # ORM Models: Cụm 1 (`identified.py`) & Cụm 2 (`anonymous.py`)
-│   │   ├── schemas/                   # Pydantic Schemas xác thực dữ liệu đầu vào
-│   │   └── api/                       # Điều phối: `deps.py`, `admin_web.py` (SSR) & `v1/` (REST API)
-│   └── tests/                         # Hệ thống kiểm thử phân tầng
-│       ├── whitebox/                  # Kiểm thử Hộp trắng (Toán học Mật mã, ORM, Session, Deps)
-│       ├── blackbox/                  # Kiểm thử Hộp đen (REST API, BVA, Phân lớp tương đương, RBAC)
-│       └── performance/               # Đo kiểm hiệu năng mật mã & Chịu tải đồng thời
-├── android/                           # Phân hệ Máy khách Di động (Kotlin + Jetpack Compose)
-│   └── app/src/
-│       ├── main/kotlin/com/atbm/app/  # Mã nguồn ứng dụng di động Android
-│       └── test/java/com/atbm/app/    # Kiểm thử đơn vị mật mã di động (`CryptoUnitTest.kt`)
-└── docs/                              # Tài liệu Thiết kế & Kiểm thử Nghiệm thu
-    ├── screenshots/                   # Thư viện ảnh chụp giao diện hệ thống thực tế
-    ├── implementation_plan.md         # Kiến trúc tổng thể & Lộ trình triển khai
-    ├── security-whitepaper.md         # Sách trắng Mật mã học & Phân tích mối đe dọa
-    ├── api-reference.md               # Đặc tả giao thức REST API chi tiết
-    ├── master_test_plan.md            # Kế hoạch nghiệm thu kiểm thử tổng thể 4 trụ cột
-    ├── test_execution_report.md       # Báo cáo số liệu thực thi kiểm thử
-    └── user-manual.md                 # Sách hướng dẫn vận hành cho Cán bộ & Nhân viên
+├── dev.sh                # ./dev.sh help — mọi lệnh chạy / test / sinh chứng chỉ
+├── backend/app/
+│   ├── main.py           # Lắp ráp app (đọc đầu tiên)
+│   ├── core/             # config, constants (Role/CaseStatus), security (JWT), logging, middleware
+│   ├── crypto/           # Toán mật mã thuần: ký mù RSA, ECIES, quản lý khóa, tẩy EXIF
+│   ├── services/         # Nghiệp vụ dùng chung API + Web: case_crypto, evidence
+│   ├── models/ schemas/ db/
+│   └── api/              # Tầng HTTP: v1/ (REST) + admin_web.py (Web Admin)
+├── backend/tests/        # whitebox / blackbox / performance (conftest: CSDL tạm)
+├── frontend/templates/   # Jinja2 (base.html + 1 file / trang)
+├── frontend/static/      # css/ + js/ của Web Admin
+├── android/              # App Kotlin + Jetpack Compose
+└── docs/                 # ARCHITECTURE.md, https-setup.md, whitepaper, test plan...
 ```
+
+👉 Chi tiết từng thư mục, luồng request qua từng file và **bảng "triệu chứng → chỗ cần xem" khi gỡ lỗi**:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -161,6 +147,18 @@ atbm/
 ### 1. Phân Hệ Máy Chủ (Backend FastAPI)
 
 Yêu cầu môi trường: **Python 3.11+**
+
+**Cách nhanh (`dev.sh`):**
+
+```bash
+./dev.sh setup        # tạo venv, cài thư viện, nạp dữ liệu mẫu
+./dev.sh run          # http://127.0.0.1:8000 (tự reload)
+./dev.sh certs && ./dev.sh run-https   # HTTPS: https://localhost:8443 — xem docs/https-setup.md
+# Trang đăng nhập web ẩn tài khoản dùng thử theo mặc định; đặt SHOW_DEMO_ACCOUNTS=true trong backend/.env khi demo
+./dev.sh help         # toàn bộ lệnh
+```
+
+Hoặc từng bước thủ công:
 
 ```bash
 # 1. Di chuyển vào thư mục backend
@@ -176,17 +174,14 @@ pip install -r requirements.txt
 # 4. Nạp dữ liệu mẫu (Tài khoản mẫu, bản tin nội bộ & hồ sơ mẫu)
 python -m app.db.seed
 
-# 5. Khởi chạy máy chủ FastAPI (Port 8000)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# 6. Mở kết nối Internet từ xa qua Ngrok (cho ứng dụng di động 4G/5G)
-ngrok http --url=chas-unshaped-jacalyn.ngrok-free.dev 8000
+# 5. Khởi chạy máy chủ qua HTTPS (khuyến nghị; app Android chỉ kết nối https://)
+cd .. && ./dev.sh certs && ./dev.sh run-https     # https://localhost:8443
 ```
 
-* **Cổng Quản trị & Thanh tra Web (Local):** [http://localhost:8000/admin/login](http://localhost:8000/admin/login)
-* **Cổng Quản trị & Thanh tra Web (Ngrok Online):** [https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login](https://chas-unshaped-jacalyn.ngrok-free.dev/admin/login)
-* **Tài liệu Swagger API Interactive:** [http://localhost:8000/docs](http://localhost:8000/docs) (hoặc [https://chas-unshaped-jacalyn.ngrok-free.dev/docs](https://chas-unshaped-jacalyn.ngrok-free.dev/docs))
-* **Tài liệu Redoc API:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+* **Cổng Quản trị & Thanh tra Web:** `https://localhost:8443/admin/login`
+* **Tài liệu API (Swagger/Redoc):** tắt mặc định trên bản bàn giao; bật khi phát triển bằng `ENABLE_API_DOCS=true` → `https://localhost:8443/docs`
+* **App Android:** địa chỉ máy chủ đặt lúc build — `./gradlew assembleRelease -Patbm.serverUrl=https://api.ten-mien-cua-ban.vn/` (mặc định `https://10.0.2.2:8443/` cho Emulator). Không dùng dịch vụ tunnel công cộng (ngrok…) cho bản triển khai.
+* **Giao thức nộp hồ sơ / bộ dữ liệu kiểm thử dùng chung:** [`docs/protocol.md`](docs/protocol.md)
 
 ---
 
@@ -240,16 +235,19 @@ cd backend && .venv/bin/python run_security_tests.py
 ---
 
 ### 2. Bộ Kiểm Thử Đơn Vị & Tích Hợp (`pytest`)
-Chạy toàn bộ 52 bài kiểm thử Hộp trắng và Hộp đen:
+Chạy toàn bộ 67 bài kiểm thử Hộp trắng và Hộp đen (trên CSDL tạm, không ảnh hưởng `app.db`):
 ```bash
-backend/.venv/bin/pytest backend/tests/
+./dev.sh test          # hoặc: cd backend && .venv/bin/python -m pytest -q
+./dev.sh test-fast     # dừng ở lỗi đầu tiên, in chi tiết
 ```
-* **Kết quả**: `52 passed, 0 failed` (Bao gồm kiểm thử API, ORM Models, ECIES Encryption, RSA Blind Sign Math, Phân lớp tương đương BVA, Quyền hạn RBAC, Quản trị Web SSR).
+* **Kết quả**: `67 passed, 0 failed` (gồm 15 test hồi quy bảo mật: chống XSS qua tên tệp, sandbox tệp tải lên, RBAC web, log không lộ IP / case_token, request_id, giới hạn tệp, chống replay tin nhắn, CORS) (Bao gồm kiểm thử API, ORM Models, ECIES Encryption, RSA Blind Sign Math, Phân lớp tương đương BVA, Quyền hạn RBAC, Quản trị Web SSR).
 
 ---
 
 ## 📚 Tài Liệu Kỹ Thuật Bổ Sung
 
+* [Kiến Trúc Mã Nguồn & Hướng Dẫn Gỡ Lỗi](docs/ARCHITECTURE.md)
+* [Chạy Hệ Thống Qua HTTPS/TLS](docs/https-setup.md)
 * [Sách Trắng Mật Mã Học & Mô Hình An Ninh](docs/security-whitepaper.md)
 * [Đặc Tả Chi Tiết Giao Thức REST API](docs/api-reference.md)
 * [Kế Hoạch & Ma Trận Kiểm Thử Nghiệm Thu (Master Test Plan)](docs/master_test_plan.md)

@@ -13,6 +13,7 @@ Kiểm tra luồng liên thông toàn diện giữa Mobile Client, Backend Serve
 11. Client nặc danh tra cứu hồ sơ và giải mã tin nhắn phản hồi từ Thanh tra.
 """
 
+import secrets
 import hashlib
 import io
 import time
@@ -26,7 +27,9 @@ from app.db.seed import seed_database
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.ecies import ecies_encrypt, ecies_decrypt
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -73,7 +76,7 @@ def test_complete_end_to_end_flow(client: TestClient):
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     ).hex()
-    case_token = f"CASE-{int(time.time())}-E2E"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham ô tài sản"
     raw_title = "Gian lận quỹ tài chính chi nhánh miền Bắc"
     raw_desc = "Phát hiện lập 2 sổ sách kế toán để trốn thuế và chia chác tiền chênh lệch."
@@ -89,7 +92,7 @@ def test_complete_end_to_end_flow(client: TestClient):
     # =========================================================================
     # BƯỚC 4: TÍNH TOÁN MÃ BĂM TOÁN HỌC H VÀ LÀM MÙ m*
     # =========================================================================
-    target_h = BlindSignatureEngine.compute_payload_hash(
+    target_h = payload_message(
         category=category,
         encrypted_title="ECIES_PROTECTED",
         encrypted_description=enc_payload["ciphertext"],
@@ -98,7 +101,7 @@ def test_complete_end_to_end_flow(client: TestClient):
         evidence_file_hashes=[evidence_hash]
     )
 
-    m_star, r = simulate_client_blinding(target_h, rsa_e, rsa_n)
+    m_star, r, _m_enc = client_blind(target_h, rsa_e, rsa_n)
     m_star_hex = hex(m_star)[2:]
 
     # =========================================================================
@@ -115,11 +118,11 @@ def test_complete_end_to_end_flow(client: TestClient):
     # =========================================================================
     # BƯỚC 6: BÓC MÙ THU HỒI CHỮ KÝ GỐC s
     # =========================================================================
-    s = simulate_client_unblinding(s_star, r, rsa_n)
+    s = client_finalize(s_star, r, _m_enc, rsa_e, rsa_n)
     s_hex = hex(s)[2:]
 
     # Kiểm tra tính hợp lệ toán học cục bộ: s^e mod N == H
-    assert pow(s, rsa_e, rsa_n) == target_h
+    assert BlindSignatureEngine.verify(target_h, s, rsa_e, rsa_n)  # chữ ký RSA-PSS chuẩn (RFC 9474)
 
     # =========================================================================
     # BƯỚC 7: NỘP HỒ SƠ ẨN DANH (ZERO-KNOWLEDGE - CỤM 2)

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Thống kê tố giác · Cổng quản trị nội bộ{% endblock %}
+
+{% block content %}
+{% set status_labels = [
+    ('PENDING', 'Chờ thụ lý', 'tone-amber', 'clock'),
+    ('RECEIVED', 'Đã tiếp nhận', 'tone-sky', 'inbox'),
+    ('INVESTIGATING', 'Đang điều tra', 'tone-blue', 'search'),
+    ('RESOLVED', 'Đã xử lý', 'tone-green', 'check-circle'),
+    ('REJECTED', 'Không chấp nhận', 'tone-amber', 'x-circle'),
+] %}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">{{ icon('activity', 'icon-sm') }} Giám sát</div>
+        <h1 class="page-title">Thống kê tố giác</h1>
+        <p class="page-sub">Số liệu tổng hợp để giám sát hiệu quả kênh tố giác. Không hiển thị nội dung hồ sơ hay bất kỳ thông tin nào về người gửi.</p>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat tone-blue">
+        <div class="stat-top"><span class="stat-label">Tổng hồ sơ</span><span class="stat-ico">{{ icon('folder', 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-foot">Từ khi hệ thống hoạt động</div>
+    </div>
+    {% for code, label, tone, ico in status_labels if code in ('PENDING', 'INVESTIGATING', 'RESOLVED') %}
+    <div class="stat {{ tone }}">
+        <div class="stat-top"><span class="stat-label">{{ label }}</span><span class="stat-ico">{{ icon(ico, 'icon-sm') }}</span></div>
+        <div class="stat-value">{{ by_status.get(code, 0) }}</div>
+        <div class="stat-foot">{{ ((by_status.get(code, 0) / total * 100) if total else 0)|round|int }}% tổng số</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="grid-main">
+    <section class="panel">
+        <div class="panel-head"><div class="panel-title">{{ icon('folder') }}<span>Theo chuyên mục</span></div></div>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Chuyên mục</th><th class="t-right">Số hồ sơ</th></tr></thead>
+                <tbody>
+                    {% for cat, n in by_category %}
+                    <tr><td class="t-strong">{{ cat }}</td><td data-label="Số hồ sơ" class="t-right">{{ n }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2"><div class="empty"><div class="empty-title">Chưa có hồ sơ nào</div></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="panel">
+        <div class="panel-head"><div class="panel-title">{{ icon('activity') }}<span>Theo trạng thái</span></div></div>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Trạng thái</th><th class="t-right">Số hồ sơ</th></tr></thead>
+                <tbody>
+                    {% for code, label, tone, ico in status_labels %}
+                    <tr><td>{{ label }}</td><td data-label="Số hồ sơ" class="t-right">{{ by_status.get(code, 0) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-head" style="border-top:1px solid var(--border-subtle);"><div class="panel-title">{{ icon('clock') }}<span>Theo tháng</span></div></div>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Tháng</th><th class="t-right">Số hồ sơ</th></tr></thead>
+                <tbody>
+                    {% for month, n in by_month %}
+                    <tr><td>{{ month }}</td><td data-label="Số hồ sơ" class="t-right">{{ n }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2"><div class="empty"><div class="empty-title">Chưa có dữ liệu</div></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -7,9 +7,10 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.identified import User, BlindSignQuota
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine
+from app.crypto.blind_signature import BlindSignatureEngine, parse_rsa_int
 from app.schemas.compliance import OfficerKeysResponse, BlindSignRequest, BlindSignResponse
-from app.api.deps import get_current_user
+from app.api.deps import require_permission
+from app.core.permissions import Perm
 
 router = APIRouter(tags=["Compliance & Blind Signatures"])
 
@@ -33,7 +34,7 @@ def get_public_keys() -> OfficerKeysResponse:
 @router.post("/blind-sign", response_model=BlindSignResponse)
 def request_blind_signature(
     req: BlindSignRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Perm.WHISTLE_SUBMIT)),
     db: Session = Depends(get_db)
 ) -> BlindSignResponse:
     """Cấp phát chữ ký mù RSA cho nhân viên hợp lệ (Áp dụng Quota hàng tuần).
@@ -78,14 +79,8 @@ def request_blind_signature(
         )
 
     # 3. Parse m* từ hex hoặc chuỗi số nguyên
-    raw_blinded = req.blinded_hash.strip()
     try:
-        if raw_blinded.startswith("0x") or raw_blinded.startswith("0X"):
-            m_star = int(raw_blinded, 16)
-        elif any(c in "abcdefABCDEF" for c in raw_blinded):
-            m_star = int(raw_blinded, 16)
-        else:
-            m_star = int(raw_blinded)
+        m_star = parse_rsa_int(req.blinded_hash)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -12,7 +12,9 @@ import java.security.SecureRandom
  * Sử dụng SQLCipher mã hóa toàn bộ cơ sở dữ liệu ở tầng đĩa (AES-256).
  * 
  * NGUYÊN TẮC AN TOÀN & PANIC PIN:
- * - Lưu trữ Case Token, Case Private Key (ECC P-256), Chữ ký mù đã bóc s.
+ * - Khóa mở kho là khóa ngẫu nhiên RIÊNG của thiết bị, bọc trong Android Keystore (xem [VaultKey]).
+ * - Chỉ lưu tối thiểu để theo dõi hồ sơ: mã hồ sơ, khóa riêng hồ sơ, tiêu đề/chuyên mục, trạng thái,
+ *   số tin nhắn. KHÔNG lưu chữ ký mù và khóa công khai (cột còn giữ để tương thích, luôn rỗng).
  * - Hỗ trợ hàm emergencyWipe(): Tiêu hủy toàn bộ dữ liệu bằng ghi đè ngẫu nhiên
  *   (Zeroize / Forensic Shredding) khi người dùng kích hoạt mã khẩn cấp (Panic PIN).
  */
@@ -23,6 +25,7 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     DATABASE_VERSION
 ) {
 
+    private val appContext: Context = context.applicationContext
     private val dbFile: File = context.getDatabasePath(DATABASE_NAME)
 
     init {
@@ -45,6 +48,49 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
         const val COL_CREATED_AT = "created_at"
         const val COL_LAST_MESSAGE_COUNT = "last_message_count"
         const val COL_HAS_UNREAD = "has_unread"
+
+        @Volatile private var migrated = false
+    }
+
+    /**
+     * Chuyển kho của bản cài cũ (khóa cố định dùng chung) sang khóa riêng của thiết bị, đồng thời
+     * xóa các dữ liệu không cần giữ (chữ ký mù, khóa công khai). Chạy một lần mỗi tiến trình.
+     */
+    @Synchronized
+    private fun migrateIfNeeded() {
+        if (migrated) return
+        if (!VaultKey.exists(appContext) && dbFile.exists()) {
+            try {
+                val legacy = SQLiteDatabase.openDatabase(
+                    dbFile.path, VaultKey.LEGACY_PASSPHRASE, null, SQLiteDatabase.OPEN_READWRITE
+                )
+                try {
+                    legacy.execSQL("UPDATE $TABLE_CASES SET $COL_SIGNATURE = '', $COL_PUB_KEY = ''")
+                } catch (_: Exception) {
+                }
+                legacy.changePassword(VaultKey.passphrase(appContext))
+                legacy.close()
+            } catch (_: Exception) {
+                // Không mở được bằng khóa cũ (file hỏng): không thể khôi phục -> ghi đè rồi tạo kho mới.
+                try {
+                    dbFile.writeBytes(ByteArray(dbFile.length().toInt()).also { SecureRandom().nextBytes(it) })
+                } catch (_: Exception) {
+                }
+                dbFile.delete()
+                VaultKey.destroy(appContext)
+            }
+        }
+        migrated = true
+    }
+
+    private fun writable(): SQLiteDatabase {
+        migrateIfNeeded()
+        return getWritableDatabase(VaultKey.passphrase(appContext))
+    }
+
+    private fun readable(): SQLiteDatabase {
+        migrateIfNeeded()
+        return getReadableDatabase(VaultKey.passphrase(appContext))
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -83,8 +129,8 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
         val category: String,
         val title: String,
         val casePrivateKeyHex: String,
-        val casePublicKeyHex: String,
-        val unblindedSignature: String,
+        val casePublicKeyHex: String = "",     // không còn lưu (tính lại được từ khóa riêng)
+        val unblindedSignature: String = "",   // không còn lưu (chỉ cần lúc gửi)
         val status: String,
         val createdAt: String,
         val lastMessageCount: Int = 0,
@@ -94,16 +140,16 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * Thêm hoặc cập nhật hồ sơ vào Secure Vault.
      */
-    fun saveCase(passphrase: String, item: VaultCaseItem) {
-        val db = getWritableDatabase(passphrase)
+    fun saveCase(item: VaultCaseItem) {
+        val db = writable()
         ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_TOKEN, item.caseToken)
             put(COL_CATEGORY, item.category)
             put(COL_TITLE, item.title)
             put(COL_PRIV_KEY, item.casePrivateKeyHex)
-            put(COL_PUB_KEY, item.casePublicKeyHex)
-            put(COL_SIGNATURE, item.unblindedSignature)
+            put(COL_PUB_KEY, "")
+            put(COL_SIGNATURE, "")
             put(COL_STATUS, item.status)
             put(COL_CREATED_AT, item.createdAt)
             put(COL_LAST_MESSAGE_COUNT, item.lastMessageCount)
@@ -116,9 +162,9 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * Lấy danh sách toàn bộ hồ sơ trong Vault.
      */
-    fun getAllCases(passphrase: String): List<VaultCaseItem> {
+    fun getAllCases(): List<VaultCaseItem> {
         val list = mutableListOf<VaultCaseItem>()
-        val db = getReadableDatabase(passphrase)
+        val db = readable()
         ensureColumns(db)
         val cursor = db.query(TABLE_CASES, null, null, null, null, null, "$COL_CREATED_AT DESC")
 
@@ -161,8 +207,8 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * Cập nhật trạng thái hồ sơ.
      */
-    fun updateCaseStatus(passphrase: String, caseToken: String, newStatus: String) {
-        val db = getWritableDatabase(passphrase)
+    fun updateCaseStatus(caseToken: String, newStatus: String) {
+        val db = writable()
         ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_STATUS, newStatus)
@@ -174,8 +220,8 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * Đánh dấu hồ sơ đã đọc và cập nhật số lượng tin nhắn hiện tại.
      */
-    fun markCaseAsRead(passphrase: String, caseToken: String, currentMessageCount: Int) {
-        val db = getWritableDatabase(passphrase)
+    fun markCaseAsRead(caseToken: String, currentMessageCount: Int) {
+        val db = writable()
         ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_HAS_UNREAD, 0)
@@ -189,13 +235,12 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
      * Đồng bộ hồ sơ khi có cập nhật mới từ Ban Thanh tra.
      */
     fun updateCaseSync(
-        passphrase: String,
         caseToken: String,
         newStatus: String,
         newMessageCount: Int,
         hasNewUpdate: Boolean
     ) {
-        val db = getWritableDatabase(passphrase)
+        val db = writable()
         ensureColumns(db)
         val values = ContentValues().apply {
             put(COL_STATUS, newStatus)
@@ -211,9 +256,9 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
     /**
      * Đếm tổng số hồ sơ có phản hồi hoặc cập nhật chưa đọc.
      */
-    fun getUnreadCount(passphrase: String): Int {
+    fun getUnreadCount(): Int {
         var count = 0
-        val db = getReadableDatabase(passphrase)
+        val db = readable()
         ensureColumns(db)
         try {
             val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE_CASES WHERE $COL_HAS_UNREAD = 1", null)
@@ -234,6 +279,9 @@ class SecureVaultDatabase(context: Context) : SQLiteOpenHelper(
      * 2. Xóa hoàn toàn file vật lý khỏi bộ nhớ thiết bị.
      */
     fun emergencyWipe() {
+        // Hủy khóa trước: kể cả khi ghi đè file thất bại, dữ liệu cũng không thể giải mã nữa.
+        VaultKey.destroy(appContext)
+        migrated = false
         try {
             close()
             if (dbFile.exists()) {

@@ -8,7 +8,9 @@ Kiểm thử Hộp đen (Black-Box Testing) theo 4 kỹ thuật chuẩn:
 """
 
 from datetime import datetime, timezone
+import secrets
 import hashlib
+import re
 import io
 import time
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -23,7 +25,9 @@ from app.core.security import create_access_token, get_password_hash
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.key_manager import key_manager
 
@@ -182,11 +186,11 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
         format=serialization.PublicFormat.UncompressedPoint,
     ).hex()
 
-    case_token = f"CASE-PATH-{int(time.time())}"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     file_bytes = b"SAFE_BINARY_EVIDENCE_CONTENT"
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 
-    h = BlindSignatureEngine.compute_payload_hash(
+    h = payload_message(
         category="An toàn thông tin",
         encrypted_title="enc_title",
         encrypted_description="enc_desc",
@@ -194,9 +198,9 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
         case_public_key=case_pub_hex,
         evidence_file_hashes=[file_hash],
     )
-    m_star, r = simulate_client_blinding(h, e, n)
+    m_star, r, _m_enc = client_blind(h, e, n)
     s_star = BlindSignatureEngine.blind_sign(m_star)
-    s_hex = hex(simulate_client_unblinding(s_star, r, n))[2:]
+    s_hex = hex(client_finalize(s_star, r, _m_enc, e, n))[2:]
 
     resp = client.post(
         "/api/v1/anonymous/cases",
@@ -218,8 +222,14 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
     # Kiểm tra qua cổng tra cứu ẩn danh: file_url không chứa `..` và không lộ đường dẫn tuyệt đối của máy chủ
     detail_resp = client.get(f"/api/v1/anonymous/cases/{case_token}")
     assert detail_resp.status_code == 200
-    evidences = detail_resp.json()["evidences"]
-    assert len(evidences) == 1
-    assert evidences[0]["file_url"].startswith("/uploads/evidences/")
-    assert ".." not in evidences[0]["file_url"]
-    assert evidences[0]["file_url"].endswith("_traversal_test.bin")
+    assert detail_resp.json()["evidences"] == []  # tra cứu ẩn danh không lộ tệp
+    # Tên tệp lưu trên đĩa là <uuid>.enc (không dùng tên do client gửi); tên gốc đã được làm sạch
+    from app.db.session import SessionLocal
+    from app.models.anonymous import WhistleCase
+    from app.services.evidence import read_name
+    with SessionLocal() as db:
+        ev = db.query(WhistleCase).filter(WhistleCase.case_token == case_token).one().evidences[0]
+        assert re.fullmatch(r"enc:[0-9a-f]{32}\.enc", ev.file_url)
+        name = read_name(ev.file_url)
+    assert ".." not in name and "/" not in name
+    assert name.endswith("traversal_test.bin")

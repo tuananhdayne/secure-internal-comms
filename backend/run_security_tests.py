@@ -10,6 +10,7 @@ Chạy 5 kịch bản bảo mật cốt lõi:
 5. Mô phỏng cơ chế Panic PIN & Tiêu hủy Dữ liệu Khẩn cấp (Duress / Emergency Wipe Simulation)
 """
 
+import secrets
 import hashlib
 import io
 import os
@@ -23,6 +24,13 @@ from pathlib import Path
 # Thêm đường dẫn backend vào sys.path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
+
+# CÔ LẬP: chạy trên CSDL + thư mục uploads TẠM (đặt trước khi import app vì Settings/engine khởi tạo
+# lúc import). Trước đây script ghi thẳng vào backend/app.db: tạo tài khoản EMP999 trong dữ liệu thật,
+# tiêu lượt gửi tố giác trong tuần và để lại hàng trăm tệp bằng chứng rác trong uploads/.
+_SEC_TMP = Path(tempfile.mkdtemp(prefix="atbm_sec_"))
+os.environ["DATABASE_URL"] = f"sqlite:///{_SEC_TMP / 'security.db'}"
+os.environ["UPLOAD_DIR"] = str(_SEC_TMP / "uploads")
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
@@ -38,7 +46,9 @@ from app.crypto.key_manager import key_manager
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.ecies import ecies_encrypt
 from app.crypto.sanitizer import strip_image_metadata
@@ -101,7 +111,7 @@ def test_scenario_1_anti_forgery(client: TestClient) -> bool:
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     )
-    case_token = f"CASE-{int(time.time())}-FAKE"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham nhũng tài chính"
     enc_title = "Tiêu đề giả mạo"
     enc_desc = "Mô tả giả mạo"
@@ -134,7 +144,7 @@ def test_scenario_1_anti_forgery(client: TestClient) -> bool:
     fake_d = fake_priv_nums.d
     fake_n = fake_priv_nums.public_numbers.n
 
-    target_h = BlindSignatureEngine.compute_payload_hash(
+    target_h = payload_message(
         category=category,
         encrypted_title=enc_title,
         encrypted_description=enc_desc,
@@ -142,8 +152,11 @@ def test_scenario_1_anti_forgery(client: TestClient) -> bool:
         case_public_key=case_pub_bytes.hex(),
         evidence_file_hashes=[]
     )
-    fake_sig_int = pow(target_h, fake_d, fake_n)
-    fake_sig_hex = hex(fake_sig_int)[2:]
+    # Chữ ký RSA-PSS ĐÚNG CHUẨN nhưng bằng khóa của kẻ tấn công -> server vẫn phải từ chối
+    from cryptography.hazmat.primitives import hashes as _h
+    from cryptography.hazmat.primitives.asymmetric import padding as _p
+    fake_sig = fake_key.sign(target_h, _p.PSS(mgf=_p.MGF1(_h.SHA384()), salt_length=48), _h.SHA384())
+    fake_sig_hex = fake_sig.hex()
 
     resp2 = client.post(
         "/api/v1/anonymous/cases",
@@ -264,7 +277,7 @@ def test_scenario_3_anti_tampering(client: TestClient) -> bool:
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     ).hex()
-    case_token = f"CASE-{int(time.time())}-INTEG"
+    case_token = f"CASE-{secrets.token_hex(16)}"
     category = "Tham ô tài sản"
     enc_title = "Bằng chứng tham ô quý 3"
     enc_desc = "Đính kèm file kế toán quỹ đen"
@@ -272,8 +285,8 @@ def test_scenario_3_anti_tampering(client: TestClient) -> bool:
     original_file_content = b"ORIGINAL_FINANCIAL_EVIDENCE_PAYLOAD_2026"
     file_sha256 = hashlib.sha256(original_file_content).hexdigest()
 
-    # Tính H bằng compute_payload_hash (chuẩn xác với server)
-    target_h = BlindSignatureEngine.compute_payload_hash(
+    # Dựng thông điệp ký mù bằng payload_message (chuẩn xác với server)
+    target_h = payload_message(
         category=category,
         encrypted_title=enc_title,
         encrypted_description=enc_desc,
@@ -283,7 +296,7 @@ def test_scenario_3_anti_tampering(client: TestClient) -> bool:
     )
 
     # Làm mù m* = (H * r^e) mod n
-    m_star, r = simulate_client_blinding(target_h, e, n)
+    m_star, r, _m_enc = client_blind(target_h, e, n)
 
     # Gửi m* lên endpoint Compliance Officer xin chữ ký mù
     blind_resp = client.post(
@@ -295,7 +308,7 @@ def test_scenario_3_anti_tampering(client: TestClient) -> bool:
     s_star = int(blind_resp.json()["blind_signature"], 16)
 
     # Bóc mù: s = (s* * r^(-1)) mod n
-    s = simulate_client_unblinding(s_star, r, n)
+    s = client_finalize(s_star, r, _m_enc, e, n)
     s_hex = hex(s)[2:]
 
     # Thử nghiệm 3.1: Tráo đổi 1 byte trong file đính kèm
@@ -480,6 +493,7 @@ def main():
     results.append(("Kịch bản 5: Mô phỏng cơ chế tiêu hủy Panic PIN", test_scenario_5_panic_pin_simulation()))
 
     total_time = (time.time() - start_time) * 1000
+    shutil.rmtree(_SEC_TMP, ignore_errors=True)
 
     print(f"\n{CYAN}{BOLD}================================================================================{RESET}")
     print(f"{CYAN}{BOLD}                          BẢNG TỔNG KẾT KIỂM THỬ BẢO MẬT                       {RESET}")

@@ -1,0 +1,28 @@
+# Caddy — reverse proxy HTTPS cho Cổng Nội Bộ trên máy chủ thuê.
+# Thay api.ten-mien-cua-ban.vn bằng tên miền thật (bản ghi DNS A/AAAA trỏ về IP máy chủ).
+# Caddy tự xin và gia hạn chứng chỉ Let's Encrypt; chỉ cho phép TLS 1.2/1.3.
+#
+# KHÔNG bật directive `log`: access log của proxy sẽ ghi IP + thời điểm của người tố giác.
+
+{
+	email admin@ten-mien-cua-ban.vn
+}
+
+api.ten-mien-cua-ban.vn {
+	tls {
+		protocols tls1.2 tls1.3
+	}
+	encode gzip
+
+	# Giới hạn kích thước request (khớp MAX_EVIDENCE_FILES × MAX_EVIDENCE_FILE_MB + dư)
+	request_body {
+		max_size 520MB
+	}
+
+	reverse_proxy 127.0.0.1:8000 {
+		# Không chuyển IP thật của client vào ứng dụng
+		header_up -X-Forwarded-For
+		header_up -X-Real-IP
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

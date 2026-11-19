@@ -1,129 +1,77 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Quản Trị Truyền Thông - ATBM{% endblock %}
+{% block title %}Bảng tin · Cổng quản trị nội bộ{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
-        <div style="width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--primary-light); border: 1px solid var(--primary-border); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
-            </svg>
-        </div>
-        <div>
-            <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">
-                Quản Trị Truyền Thông & Thông Báo Nội Bộ
-            </h1>
-            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.15rem;">
-                Đăng thông cáo chính thức, chính sách an ninh và tài liệu phổ biến nội bộ.
-            </p>
-        </div>
+{% set can_manage = can(current_user.role, Perm.POST_MANAGE) %}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">{{ icon('news', 'icon-sm') }} Bảng tin nội bộ</div>
+        <h1 class="page-title">Truyền thông &amp; thông báo</h1>
+        <p class="page-sub">Thông báo, chính sách và tin tức gửi tới ứng dụng của toàn bộ nhân viên.</p>
     </div>
+    {% if can_manage %}
+    <div class="page-actions"><a href="#new-post" class="btn btn-primary">{{ icon('send', 'icon-sm') }}<span>Đăng thông báo</span></a></div>
+    {% endif %}
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
-    <!-- Danh sách bài viết -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-                </svg>
-            </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Danh sách Bài viết đã đăng ({{ posts|length }})
-            </h3>
+<div class="{{ 'grid-main' if can_manage else '' }}">
+    <section class="panel">
+        <div class="panel-head">
+            <div class="panel-title">{{ icon('news') }}<span>Bài viết đã đăng</span><span class="count">{{ posts|length }}</span></div>
+            {% if not can_manage %}<span class="badge badge-neutral">{{ icon('eye', 'icon-sm') }}Chỉ xem</span>{% endif %}
         </div>
-        <div style="overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tiêu đề</th>
-                        <th>Tác giả</th>
-                        <th>Bình luận</th>
-                        <th>Ngày đăng</th>
-                        <th style="text-align: right;">Thao tác</th>
-                    </tr>
-                </thead>
+        <div class="table-wrap">
+            <table class="responsive">
+                <thead><tr><th>Tiêu đề</th><th>Tác giả</th><th>Bình luận</th><th>Ngày đăng</th>{% if can_manage %}<th class="t-right">Thao tác</th>{% endif %}</tr></thead>
                 <tbody>
                     {% for p in posts %}
                     <tr>
-                        <td style="font-weight: 600; color: var(--text-primary);">
-                            {% if p.is_pinned %}
-                            <span class="badge badge-warning" style="margin-right: 0.35rem; padding: 0.18rem 0.5rem;">
-                                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
-                                </svg>
-                                <span>Ghim</span>
-                            </span>
-                            {% endif %}
-                            {{ p.title }}
+                        <td class="td-title">
+                            <div style="display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;">
+                                {% if p.is_pinned %}<span class="badge badge-warning">{{ icon('pin', 'icon-sm') }}Ghim</span>{% endif %}
+                                <span class="t-strong">{{ p.title }}</span>
+                            </div>
                         </td>
-                        <td style="color: var(--text-secondary);">{{ p.author.full_name }}</td>
-                        <td>
-                            <span class="badge badge-info" style="font-size: 0.72rem; padding: 0.18rem 0.5rem;">
-                                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                                <span>{{ p.comments|length }}</span>
-                            </span>
-                        </td>
-                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td style="text-align: right;">
-                            <form method="POST" action="/admin/posts/delete/{{ p.id }}" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài viết này?');">
-                                <button type="submit" class="btn btn-sm" style="background: var(--status-danger-bg); color: var(--status-danger-text); border: 1px solid var(--status-danger-border);">
-                                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
-                                    <span>Xóa</span>
-                                </button>
+                        <td data-label="Tác giả" class="nowrap">{{ p.author.full_name if p.author else 'Hệ thống' }}</td>
+                        <td data-label="Bình luận"><span class="badge badge-neutral">{{ icon('message', 'icon-sm') }}{{ p.comments|length }}</span></td>
+                        <td data-label="Ngày đăng" class="t-muted nowrap">{{ p.created_at|local_dt }}</td>
+                        {% if can_manage %}
+                        <td class="td-actions t-right">
+                            <form method="POST" action="/admin/posts/delete/{{ p.id }}" style="display:inline;" onsubmit="return confirm('Xóa bài viết này? Thao tác không thể hoàn tác.');">
+                                <button type="submit" class="btn btn-sm btn-danger-soft" aria-label="Xóa bài viết {{ p.title }}">{{ icon('trash', 'icon-sm') }}<span>Xóa</span></button>
                             </form>
                         </td>
+                        {% endif %}
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem;">Chưa có bài viết nào</td>
-                    </tr>
+                    <tr><td colspan="5"><div class="empty"><div class="empty-ico">{{ icon('news') }}</div><div class="empty-title">Chưa có bài viết nào</div>Bài đăng sẽ xuất hiện trên bảng tin ứng dụng di động.</div></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-    <!-- Form đăng bài viết mới -->
-    <div class="card">
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem;">
-            <div style="width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--status-info-bg); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-            </div>
-            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                Đăng Bài Viết Mới
-            </h3>
-        </div>
-        <form method="POST" action="/admin/posts/create">
+    {% if can_manage %}
+    <section class="panel" id="new-post">
+        <div class="panel-head"><div class="panel-title">{{ icon('send') }}<span>Đăng bài viết mới</span></div></div>
+        <form method="POST" action="/admin/posts/create" class="panel-body">
             <div class="form-group">
-                <label class="form-label" for="title">Tiêu đề bài viết</label>
-                <input class="form-control" type="text" id="title" name="title" placeholder="VD: Triển khai kiểm tra an ninh tháng 11" required>
+                <label class="form-label" for="title">Tiêu đề</label>
+                <input class="form-control" type="text" id="title" name="title" placeholder="VD: Kiểm tra an ninh định kỳ tháng 11" maxlength="200" required>
             </div>
             <div class="form-group">
-                <label class="form-label" for="content">Nội dung chi tiết</label>
-                <textarea class="form-control" id="content" name="content" rows="6" placeholder="Nhập nội dung thông báo..." required></textarea>
+                <label class="form-label" for="content">Nội dung</label>
+                <textarea class="form-control" id="content" name="content" rows="7" placeholder="Nhập nội dung thông báo..." required></textarea>
             </div>
-            <div class="form-group" style="display: flex; align-items: center; gap: 0.65rem; background: var(--bg-muted); padding: 0.75rem 0.95rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                <input type="checkbox" id="is_pinned" name="is_pinned" value="true" style="accent-color: var(--primary); width: 1.1rem; height: 1.1rem; cursor: pointer;">
-                <label for="is_pinned" style="font-size: 0.85rem; color: var(--text-primary); cursor: pointer; user-select: none; font-weight: 500;">
-                    Ghim bài viết lên đầu trang bảng tin Mobile
-                </label>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.68rem; font-weight: 600;">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                </svg>
-                <span>Đăng Thông Báo</span>
-            </button>
+            <label class="check-row" for="is_pinned">
+                <input type="checkbox" id="is_pinned" name="is_pinned" value="true">
+                <span>Ghim lên đầu bảng tin</span>
+            </label>
+            <button type="submit" class="btn btn-primary btn-block">{{ icon('send', 'icon-sm') }}<span>Đăng thông báo</span></button>
         </form>
-    </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

@@ -9,10 +9,16 @@ android {
   compileSdk = 36
   defaultConfig {
     applicationId = "com.atbm.app"
+    // Địa chỉ máy chủ mặc định của app (bắt buộc https://). Khi triển khai thật:
+    //   ./gradlew assembleRelease -Patbm.serverUrl=https://api.ten-mien-cua-ban.vn/
+    // Mặc định: backend local chạy bằng `./dev.sh run-https`, nhìn từ Android Emulator.
+    val serverUrl = (project.findProperty("atbm.serverUrl") as String?) ?: "https://10.0.2.2:8443/"
+    require(serverUrl.startsWith("https://")) { "atbm.serverUrl phải bắt đầu bằng https://" }
+    buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     minSdk = 26
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2  // 1.1.0: chữ ký mù RFC 9474 (không tương thích bản 1.0), giao diện bàn giao
+    versionName = "1.1.0"
   }
 
   buildTypes {
@@ -28,7 +34,7 @@ android {
   buildFeatures {
     compose = true
     aidl = false
-    buildConfig = false
+    buildConfig = true
     shaders = false
   }
 
@@ -94,4 +100,10 @@ dependencies {
   implementation(libs.androidx.sqlite.ktx)
   implementation(libs.androidx.biometric)
   implementation(libs.androidx.security.crypto)
+}
+
+// Bộ dữ liệu kiểm thử giao thức dùng chung với server (protocol/test_vectors.json, ngoài module):
+// khai báo là input để Gradle chạy lại unit test mỗi khi file này thay đổi.
+tasks.withType<Test>().configureEach {
+  inputs.file(rootProject.file("../protocol/test_vectors.json"))
 }

@@ -22,8 +22,8 @@ import kotlinx.coroutines.withContext
 object CaseNotificationManager {
 
     const val CHANNEL_ID = "atbm_case_notifications"
-    private const val CHANNEL_NAME = "Thông Báo Hồ Sơ Tố Giác"
-    private const val CHANNEL_DESC = "Cập nhật tiến độ thụ lý và phản hồi điều tra từ Ban Thanh Tra"
+    private const val CHANNEL_NAME = "Cập nhật tố giác"
+    private const val CHANNEL_DESC = "Thông báo khi Ban Thanh tra phản hồi hoặc cập nhật tiến độ xử lý tố giác của bạn"
 
     /**
      * Khởi tạo Notification Channel cho Android 8.0+ (API 26+).
@@ -52,7 +52,8 @@ object CaseNotificationManager {
         initChannel(context)
         try {
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(com.atbm.app.R.drawable.ic_stat_shield)
+                .setColor(0xFF2547D0.toInt())
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -72,9 +73,8 @@ object CaseNotificationManager {
      */
     suspend fun checkCaseUpdates(context: Context): Int = withContext(Dispatchers.IO) {
         val vault = SecureVaultDatabase(context)
-        val passphrase = "VAULT_MASTER_KEY_SQLCIPHER"
         val cases = try {
-            vault.getAllCases(passphrase)
+            vault.getAllCases()
         } catch (_: Exception) {
             emptyList()
         }
@@ -96,21 +96,20 @@ object CaseNotificationManager {
 
                     if (statusChanged || hasNewMessages) {
                         vault.updateCaseSync(
-                            passphrase = passphrase,
                             caseToken = c.caseToken,
                             newStatus = detail.status,
                             newMessageCount = serverMsgCount,
                             hasNewUpdate = true
                         )
 
-                        val notifTitle = "🛡️ Cập Nhật Hồ Sơ #${c.caseToken.takeLast(6)}"
+                        val notifTitle = "Tố giác ${com.atbm.app.ui.components.DisplayText.shortCaseCode(c.caseToken)} có cập nhật mới"
                         val notifText = when {
                             hasNewMessages && statusChanged ->
-                                "Ban Thanh tra đã gửi phản hồi mới và chuyển trạng thái thành '${detail.status}'."
+                                "Ban Thanh tra đã gửi phản hồi mới và chuyển trạng thái thành “${com.atbm.app.ui.components.DisplayText.caseStatus(detail.status).text}”."
                             hasNewMessages ->
-                                "Ban Thanh tra đã gửi tin nhắn phản hồi điều tra mới."
+                                "Ban Thanh tra đã gửi cho bạn một tin nhắn mới."
                             else ->
-                                "Trạng thái hồ sơ đã chuyển thành '${detail.status}'."
+                                "Trạng thái tố giác đã chuyển thành “${com.atbm.app.ui.components.DisplayText.caseStatus(detail.status).text}”."
                         }
 
                         showLocalNotification(
@@ -127,7 +126,7 @@ object CaseNotificationManager {
         }
 
         unreadCount = try {
-            vault.getUnreadCount(passphrase)
+            vault.getUnreadCount()
         } catch (_: Exception) {
             0
         }

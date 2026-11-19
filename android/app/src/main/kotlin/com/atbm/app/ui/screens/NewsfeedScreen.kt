@@ -1,5 +1,6 @@
 package com.atbm.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,7 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -89,7 +92,37 @@ fun NewsfeedScreen(
         employeeCode = employeeCode,
         fullName = "Nhân viên $employeeCode"
     ) {
-        Scaffold(
+        val openPost = selectedPost
+        if (openPost != null) {
+            BackHandler { selectedPost = null; newCommentText = "" }
+            PostDetailScreen(
+                post = openPost,
+                commentText = newCommentText,
+                onCommentChange = { newCommentText = it },
+                onBack = { selectedPost = null; newCommentText = "" },
+                onSend = {
+                    if (newCommentText.isNotBlank()) {
+                        scope.launch {
+                            try {
+                                val resp = NetworkClient.identifiedApi.addComment(
+                                    "Bearer $token", openPost.id, CreateCommentRequest(newCommentText.trim())
+                                )
+                                if (resp.isSuccessful) {
+                                    newCommentText = ""
+                                    val detail = NetworkClient.identifiedApi.getPostDetail("Bearer $token", openPost.id)
+                                    if (detail.isSuccessful && detail.body() != null) selectedPost = detail.body()
+                                    fetchPosts()
+                                } else {
+                                    android.widget.Toast.makeText(context, "Không gửi được bình luận. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, DisplayText.networkError(e), android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            )
+        } else Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
@@ -228,106 +261,6 @@ fun NewsfeedScreen(
                     }
                 }
 
-                // Chi tiết bài viết Modal Dialog
-                if (selectedPost != null) {
-                    val currentPost = selectedPost!!
-                    AlertDialog(
-                        onDismissRequest = { selectedPost = null },
-                        confirmButton = {
-                            Button(onClick = { selectedPost = null }) {
-                                Text("Đóng")
-                            }
-                        },
-                        title = {
-                            Text(
-                                text = currentPost.title,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        },
-                        text = {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = "${currentPost.authorName ?: "Ban Giám đốc"} • ${DisplayText.serverDateTime(currentPost.createdAt)}",
-                                    fontSize = 11.sp,
-                                    color = TextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = currentPost.content,
-                                    fontSize = 14.sp,
-                                    color = TextPrimary
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                HorizontalDivider(color = BorderDark)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Bình luận (${currentPost.comments?.size ?: 0})",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-
-                                val commentList = currentPost.comments ?: emptyList()
-                                if (commentList.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    commentList.takeLast(3).forEach { c ->
-                                        Text(
-                                            text = "• ${c.authorName}: ${c.content}",
-                                            fontSize = 12.sp,
-                                            color = TextPrimary,
-                                            modifier = Modifier.padding(vertical = 2.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = newCommentText,
-                                    onValueChange = { newCommentText = it },
-                                    placeholder = { Text("Viết bình luận...") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = TextPrimary,
-                                        unfocusedTextColor = TextPrimary
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Button(
-                                    onClick = {
-                                        if (newCommentText.isNotBlank()) {
-                                            scope.launch {
-                                                try {
-                                                    val resp = NetworkClient.identifiedApi.addComment(
-                                                        "Bearer $token",
-                                                        currentPost.id,
-                                                        CreateCommentRequest(newCommentText.trim())
-                                                    )
-                                                    if (!resp.isSuccessful) {
-                                                        android.widget.Toast.makeText(context, "Không gửi được bình luận. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
-                                                    }
-                                                    if (resp.isSuccessful) {
-                                                        newCommentText = ""
-                                                        val detailResp = NetworkClient.identifiedApi.getPostDetail("Bearer $token", currentPost.id)
-                                                        if (detailResp.isSuccessful && detailResp.body() != null) {
-                                                            selectedPost = detailResp.body()
-                                                        }
-                                                        fetchPosts()
-                                                    }
-                                                } catch (e: Exception) {
-                                                    android.widget.Toast.makeText(context, DisplayText.networkError(e), android.widget.Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text("Gửi bình luận")
-                                }
-                            }
-                        },
-                        containerColor = CardDark
-                    )
-                }
             }
         }
     }
@@ -397,6 +330,104 @@ fun PostCard(post: PostItem, onClick: () -> Unit) {
                     fontSize = 11.sp,
                     color = TextSecondary
                 )
+            }
+        }
+    }
+}
+
+
+/** Màn hình đọc bài viết toàn trang: nội dung đầy đủ, toàn bộ bình luận, ô bình luận cố định ở cuối. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PostDetailScreen(
+    post: PostItem,
+    commentText: String,
+    onCommentChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onSend: () -> Unit
+) {
+    val comments = post.comments ?: emptyList()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Bài viết", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Quay lại", tint = TextPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardDark)
+            )
+        },
+        bottomBar = {
+            Surface(color = CardDark) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = onCommentChange,
+                        placeholder = { Text("Viết bình luận…") },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = AccentCyan, unfocusedBorderColor = BorderDark
+                        )
+                    )
+                    IconButton(onClick = onSend, enabled = commentText.isNotBlank()) {
+                        Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Gửi bình luận",
+                            tint = if (commentText.isNotBlank()) AccentCyan else TextSecondary)
+                    }
+                }
+            }
+        },
+        containerColor = BgDark
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                if (post.isPinned) {
+                    Text("Đã ghim", color = AccentAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Text(post.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary, lineHeight = 30.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "${post.authorName ?: "Ban Giám đốc"} • ${DisplayText.serverDateTime(post.createdAt)}",
+                    fontSize = 12.sp, color = AccentCyan
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(post.content, fontSize = 16.sp, color = TextPrimary, lineHeight = 25.sp)
+                Spacer(modifier = Modifier.height(20.dp))
+                HorizontalDivider(color = BorderDark)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Bình luận (${comments.size})", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            }
+            if (comments.isEmpty()) {
+                item { Text("Chưa có bình luận. Hãy là người đầu tiên chia sẻ ý kiến.", fontSize = 13.sp, color = TextSecondary) }
+            }
+            items(comments) { c ->
+                Surface(color = CardDark, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(c.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(DisplayText.serverDateTime(c.createdAt), fontSize = 11.sp, color = TextSecondary)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(c.content, fontSize = 14.sp, color = TextPrimary, lineHeight = 20.sp)
+                    }
+                }
             }
         }
     }

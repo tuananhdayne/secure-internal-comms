@@ -39,14 +39,14 @@ fun DynamicWatermarkBox(
         // 2. Lớp Watermark phủ bên trên (không cản trở click)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val paint = Paint().apply {
-                color = Color.White.copy(alpha = 0.08f).toArgb()
-                textSize = 30f
+                color = Color.White.copy(alpha = 0.06f).toArgb()
+                textSize = 28f
                 isAntiAlias = true
                 isFakeBoldText = true
             }
 
             val canvas = drawContext.canvas.nativeCanvas
-            val stepY = 220f
+            val stepY = 340f
             // Khoảng cách ngang theo độ dài chữ thật để các dòng không chồng lên nhau
             val stepX = paint.measureText(watermarkText) + 160f
 

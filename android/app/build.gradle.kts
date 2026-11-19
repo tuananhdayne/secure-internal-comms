@@ -17,8 +17,8 @@ android {
     buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     minSdk = 26
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2  // 1.1.0: chữ ký mù RFC 9474 (không tương thích bản 1.0), giao diện bàn giao
+    versionName = "1.1.0"
   }
 
   buildTypes {

@@ -48,6 +48,8 @@ curl --cacert certs/ca.crt https://localhost:8443/health
 - `res/xml/network_security_config.xml`: cấm cleartext toàn ứng dụng; với host backend
   (10.0.2.2 / localhost / 127.0.0.1) **chỉ** tin CA nội bộ `res/raw/atbm_dev_ca.pem` → proxy chặn bắt
   (Burp/mitmproxy) không giải mã được. Các domain khác (máy chủ thuê có chứng chỉ công khai, vd. Let's Encrypt) dùng kho CA hệ thống.
+  Riêng bản **debug** có thêm `<debug-overrides>`: tin CA nội bộ cho mọi host (để thử qua IP LAN, xem mục 4);
+  bản **release** chỉ tin kho CA hệ thống.
 - `NetworkClient.updateBaseUrl()` từ chối mọi địa chỉ không phải `https://`; màn hình đăng nhập báo
   "Địa chỉ máy chủ không hợp lệ" nếu nhập `http://`.
 - Đã gỡ `HttpLoggingInterceptor` (trước đây log BODY ghi mật khẩu/JWT ra logcat).
@@ -60,3 +62,32 @@ curl --cacert certs/ca.crt https://localhost:8443/health
 Đã kiểm thử (2026-11-18, Pixel 8 emulator): `http://` bị chặn; đăng nhập, gửi tố giác, nhận phản hồi
 qua `https://10.0.2.2:8443`. Server chỉ bắt tay TLS 1.2/1.3 với ECDHE + AES-GCM, từ chối CBC và HTTP thuần
 trên cổng 8443, có header HSTS.
+
+## 4. Chạy thử trong mạng Wi‑Fi chung (LAN)
+
+Dùng khi muốn cầm điện thoại thật thử app mà chưa có máy chủ thuê. **Chỉ để thử nghiệm** —
+triển khai thật xem [deploy.md](deploy.md).
+
+1. Laptop chạy backend và điện thoại kết nối **cùng một mạng Wi‑Fi**.
+2. Trên laptop chạy:
+
+   ```bash
+   ./dev.sh lan                # tự dò IP Wi‑Fi của máy
+   ./dev.sh lan 192.168.1.15   # hoặc chỉ định IP cụ thể
+   ```
+
+   Lệnh này tự làm hết: dò IP LAN (bỏ qua docker/bridge), sinh lại chứng chỉ nếu chưa có IP đó,
+   build APK debug trỏ về `https://<ip-wifi>:8443/`, chép ra `dist/cong-noi-bo-lan.apk`, rồi chạy server HTTPS cổng 8443.
+3. Cài APK lên điện thoại: `adb install -r dist/cong-noi-bo-lan.apk` (cắm cáp), hoặc gửi file
+   `dist/cong-noi-bo-lan.apk` qua Zalo/Drive/USB rồi mở để cài.
+4. Mở app và đăng nhập bằng tài khoản mẫu (vd. `NV001` / `employee123`).
+   Web quản trị trên laptop/điện thoại: `https://<ip-wifi>:8443/admin` — trình duyệt cảnh báo CA nội bộ là bình thường
+   (muốn hết cảnh báo thì import `backend/certs/ca.crt`, đây là chứng chỉ công khai).
+
+**Không kết nối được?**
+
+- Tường lửa chặn cổng: `sudo ufw allow 8443/tcp`.
+- Đổi mạng Wi‑Fi / IP laptop thay đổi → chạy lại `./dev.sh lan` rồi cài lại APK mới.
+- Mỗi lần chứng chỉ được sinh lại là **một CA mới** → APK cài trước đó (kể cả bản Emulator) sẽ báo lỗi chứng chỉ,
+  cần build/cài lại.
+- Emulator vẫn dùng được như cũ qua `https://10.0.2.2:8443/`.

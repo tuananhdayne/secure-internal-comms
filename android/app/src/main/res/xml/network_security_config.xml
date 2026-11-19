@@ -22,4 +22,14 @@
             <certificates src="@raw/atbm_dev_ca" />
         </trust-anchors>
     </domain-config>
+
+    <!-- Chỉ bản DEBUG: tin thêm CA nội bộ với mọi địa chỉ để thử trong mạng Wi-Fi chung
+         (IP LAN đổi theo DHCP nên không liệt kê cố định được; xem ./dev.sh lan).
+         Bản release KHÔNG có mục này: chỉ tin CA hệ thống (Let's Encrypt). -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="@raw/atbm_dev_ca" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>

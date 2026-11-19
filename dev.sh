@@ -29,6 +29,37 @@ case "$cmd" in
     need_venv
     [ -f "$BACKEND/certs/server.crt" ] || { echo "Chưa có chứng chỉ -> chạy: ./dev.sh certs"; exit 1; }
     cd "$BACKEND" && exec "$PY" run_https.py ;;
+  lan)            # Thử trong mạng Wi-Fi chung: chứng chỉ có IP máy này + build APK debug trỏ về đây + chạy HTTPS
+    need_venv
+    # Các IPv4 trong mạng LAN của máy (bỏ docker/bridge); APK trỏ về IP Wi-Fi nếu có
+    mapfile -t IPS < <(ip -4 -o addr show scope global | awk '$2 !~ /^(docker|br-|veth|virbr)/ {split($4,a,"/"); print a[1]}')
+    [ "${#IPS[@]}" -gt 0 ] || { echo "Không tìm thấy IP mạng LAN — máy đã kết nối Wi-Fi chưa?"; exit 1; }
+    LAN_IP="${1:-$(ip -4 -o addr show scope global | awk '$2 ~ /^wl/ {split($4,a,"/"); print a[1]; exit}')}"
+    LAN_IP="${LAN_IP:-${IPS[0]}}"
+    MISSING=0
+    for ip in "${IPS[@]}" "$LAN_IP"; do
+      "$PY" - "$BACKEND/certs/server.crt" "$ip" <<'PYEOF' || MISSING=1
+import ipaddress, sys
+from cryptography import x509
+try:
+    cert = x509.load_pem_x509_certificate(open(sys.argv[1], "rb").read())
+    ips = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value.get_values_for_type(x509.IPAddress)
+except Exception:
+    sys.exit(1)
+sys.exit(0 if ipaddress.ip_address(sys.argv[2]) in ips else 1)
+PYEOF
+    done
+    if [ "$MISSING" = 1 ]; then
+      echo "==> Sinh lại chứng chỉ cho: ${IPS[*]}"
+      (cd "$BACKEND" && "$PY" scripts/gen_dev_certs.py "${IPS[@]}")
+    fi
+    echo "==> Build APK debug trỏ về https://$LAN_IP:8443/"
+    (cd "$ROOT/android" && ./gradlew -q assembleDebug "-Patbm.serverUrl=https://$LAN_IP:8443/")
+    mkdir -p "$ROOT/dist" && cp "$ROOT/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT/dist/cong-noi-bo-lan.apk"
+    echo "==> APK: dist/cong-noi-bo-lan.apk  (cài: adb install -r dist/cong-noi-bo-lan.apk, hoặc gửi file sang điện thoại)"
+    echo "    Điện thoại phải cùng Wi-Fi. Nếu không kết nối được: sudo ufw allow 8443/tcp"
+    echo "    Web quản trị: https://$LAN_IP:8443/admin  (trình duyệt sẽ cảnh báo CA nội bộ — bình thường)"
+    cd "$BACKEND" && exec "$PY" run_https.py ;;
   seed)           # Nạp dữ liệu mẫu (chỉ thêm tài khoản/bài viết còn thiếu)
     need_venv; cd "$BACKEND" && "$PY" -m app.db.seed ;;
   test)           # Toàn bộ pytest (CSDL tạm, không đụng app.db). Thêm tham số pytest tùy ý.

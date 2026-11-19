@@ -45,7 +45,18 @@ def main() -> int:
         mode = stat.S_IMODE(keys.stat().st_mode)
         check(mode & 0o077 == 0, "Thư mục khóa chỉ chủ sở hữu truy cập được (chmod 700)", f"chmod 700 {keys}")
     else:
-        check(False, "Thư mục khóa tồn tại", "Khởi động app một lần để sinh khóa")
+        check(False, "Thư mục khóa tồn tại", "Chạy: python -m app.db.seed (sinh khóa + dữ liệu ban đầu)")
+
+    def private_file(path: Path, name: str) -> None:
+        """Chỉ xem quyền file (không đọc nội dung)."""
+        if path.is_file():
+            mode = stat.S_IMODE(path.stat().st_mode)
+            check(mode & 0o077 == 0, f"{name} chỉ chủ sở hữu đọc được (chmod 600)", f"chmod 600 {path}")
+
+    backend_dir = Path(__file__).resolve().parents[1]
+    private_file(backend_dir / ".env", "File cấu hình .env")
+    if settings.DATABASE_URL.startswith("sqlite:///"):
+        private_file(Path(settings.DATABASE_URL.removeprefix("sqlite:///")), "Cơ sở dữ liệu")
 
     try:
         from app.db.session import SessionLocal

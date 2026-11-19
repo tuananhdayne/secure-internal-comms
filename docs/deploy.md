@@ -26,7 +26,8 @@ Sửa `/opt/atbm/backend/.env`:
 ## 3. Khởi tạo dữ liệu và tài khoản
 ```bash
 cd /opt/atbm/backend
-sudo -u atbm .venv/bin/python -m app.db.seed          # bảng + tài khoản mẫu (sẽ đổi mật khẩu ngay)
+sudo -u atbm .venv/bin/python -m app.db.seed          # khóa Ban Thanh tra + bảng + tài khoản mẫu
+sudo chmod 600 app.db                                 # chỉ tài khoản atbm đọc được CSDL
 # Tài khoản đặc quyền chỉ cấp trên máy chủ (mật khẩu được hỏi kín):
 sudo -u atbm .venv/bin/python scripts/manage_roles.py create TT100 "Họ Tên" "Ban Thanh tra" COMPLIANCE_OFFICER
 sudo -u atbm .venv/bin/python scripts/manage_roles.py create AD100 "Họ Tên" "Phòng CNTT" SYSTEM_ADMIN
@@ -39,8 +40,8 @@ Nhân viên và Ban Giám đốc do Quản trị viên tạo trên cổng web.
 ```bash
 sudo -u atbm .venv/bin/python scripts/preflight.py      # mọi mục phải ĐẠT
 ```
-Kiểm tra: khóa JWT riêng, ẩn tài khoản demo, tắt `/docs`, CORS, quyền thư mục khóa (700), không còn tài
-khoản mẫu dùng mật khẩu mặc định. Dịch vụ systemd chạy `preflight --strict` trước mỗi lần khởi động và
+Kiểm tra: khóa JWT riêng, ẩn tài khoản demo, tắt `/docs`, CORS, quyền thư mục khóa (700), quyền `.env` và
+`app.db` (600), không còn tài khoản mẫu dùng mật khẩu mặc định. Dịch vụ systemd chạy `preflight --strict` trước mỗi lần khởi động và
 **từ chối chạy** nếu còn mục chưa đạt.
 
 ## 5. Chạy dịch vụ

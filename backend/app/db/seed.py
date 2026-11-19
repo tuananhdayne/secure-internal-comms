@@ -136,6 +136,10 @@ def seed_database(db: Session) -> None:
 
 
 if __name__ == "__main__":
+    # Sinh khóa Ban Thanh tra ngay khi khởi tạo (thư mục 700 / file 600) để preflight của systemd đạt
+    # trên máy chủ mới — nếu chờ app tự sinh lúc khởi động thì preflight --strict chặn trước.
+    from app.crypto.key_manager import key_manager
+    _ = key_manager.rsa_public_numbers, key_manager.ec_public_key_hex
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
         seed_database(session)

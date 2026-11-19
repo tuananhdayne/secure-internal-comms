@@ -21,6 +21,8 @@ case "$cmd" in
     need_venv; cd "$BACKEND" && exec "$PY" -m uvicorn app.main:app --reload --port "$PORT" --no-access-log ;;
   run-debug)      # Như `run` nhưng LOG_LEVEL=DEBUG
     need_venv; cd "$BACKEND" && LOG_LEVEL=DEBUG exec "$PY" -m uvicorn app.main:app --reload --port "$PORT" --no-access-log ;;
+  preflight)      # Kiểm tra cấu hình trước khi chạy thật (khóa JWT, demo, CORS, mật khẩu mẫu...)
+    need_venv; cd "$BACKEND" && "$PY" scripts/preflight.py "$@" ;;
   certs)          # Sinh CA nội bộ + chứng chỉ TLS (thêm IP LAN: ./dev.sh certs 192.168.1.15)
     need_venv; cd "$BACKEND" && "$PY" scripts/gen_dev_certs.py "$@" ;;
   run-https)      # Chạy backend HTTPS (https://0.0.0.0:8443; emulator: https://10.0.2.2:8443)

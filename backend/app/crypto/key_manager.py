@@ -1,10 +1,14 @@
+import logging
 import os
 from pathlib import Path
 from typing import Tuple
-from cryptography.hazmat.primitives.asymmetric import rsa, ec
+
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class KeyManager:
@@ -21,7 +25,26 @@ class KeyManager:
         self._ec_private_key: ec.EllipticCurvePrivateKey | None = None
         self._load_or_generate_keys()
 
+    @staticmethod
+    def _write_private(path: Path, data: bytes) -> None:
+        """Ghi khóa riêng với quyền 600 ngay từ lúc tạo file (không có khoảnh khắc file đọc được)."""
+        fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+
+    def _harden_permissions(self) -> None:
+        """Thư mục khóa 700, file khóa 600 — tự siết lại nếu đang rộng hơn (vd. bản cài cũ để 664)."""
+        try:
+            os.chmod(self.keys_dir, 0o700)
+            for p in self.keys_dir.iterdir():
+                if p.is_file():
+                    os.chmod(p, 0o600)
+        except OSError as exc:
+            logger.warning("Không siết được quyền thư mục khóa: %s", type(exc).__name__)
+
     def _load_or_generate_keys(self) -> None:
+        self.keys_dir.mkdir(parents=True, exist_ok=True)
+        self._harden_permissions()
         # 1. RSA-2048 Key for Blind Signatures
         if self.rsa_key_path.exists():
             with open(self.rsa_key_path, "rb") as f:
@@ -39,8 +62,7 @@ class KeyManager:
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             )
-            with open(self.rsa_key_path, "wb") as f:
-                f.write(pem)
+            self._write_private(self.rsa_key_path, pem)
 
         # 2. ECC P-256 Key for E2EE Chat & Report Encryption
         if self.ec_key_path.exists():
@@ -58,8 +80,7 @@ class KeyManager:
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             )
-            with open(self.ec_key_path, "wb") as f:
-                f.write(pem)
+            self._write_private(self.ec_key_path, pem)
 
     # --- RSA Blind Signatures ---
     @property

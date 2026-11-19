@@ -357,3 +357,16 @@ def test_weak_or_malformed_case_token_rejected(client: TestClient, weak: str):
         "case_token": weak, "case_public_key": "04" + "44" * 64, "unblinded_signature": "55"})
     assert r.status_code == 400
     assert "Mã hồ sơ không hợp lệ" in r.json()["detail"]
+
+
+def test_private_keys_are_owner_only(tmp_path):
+    """Khóa riêng Ban Thanh tra: thư mục 700, file 600 — kể cả khi bản cài cũ để quyền rộng."""
+    import os
+    import stat
+    from app.crypto.key_manager import KeyManager
+    KeyManager(keys_dir=tmp_path)
+    (tmp_path / "officer_blind_rsa.pem").chmod(0o664)  # giả lập bản cài cũ
+    KeyManager(keys_dir=tmp_path)
+    assert stat.S_IMODE(tmp_path.stat().st_mode) == 0o700
+    for p in tmp_path.iterdir():
+        assert stat.S_IMODE(p.stat().st_mode) == 0o600, p.name

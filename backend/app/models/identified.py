@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import String, Text, Boolean, Integer, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import String, Text, Boolean, Integer, DateTime, Float, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -98,3 +98,17 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # vd: case.view, user.lock
     target: Mapped[str] = mapped_column(String(100), default="", nullable=False)  # vd: "case:12", "user:NV005"
     detail: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+
+
+class LoginAttempt(Base):
+    """Cụm 1: Bộ đếm đăng nhập SAI theo tài khoản (chống dò mật khẩu), dùng chung cho mọi tiến trình.
+
+    Chỉ lưu khi đăng nhập sai; đăng nhập đúng thì xóa dòng -> không tạo dấu vết thời điểm đăng nhập
+    của nhân viên. Không lưu IP. Thời gian là epoch giây (UTC).
+    """
+    __tablename__ = "login_attempts"
+
+    account_key: Mapped[str] = mapped_column(String(50), primary_key=True)  # mã NV đã chuẩn hóa (UPPER)
+    fail_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    window_start: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    locked_until: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

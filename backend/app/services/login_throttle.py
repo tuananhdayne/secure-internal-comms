@@ -1,30 +1,25 @@
 """Chống dò mật khẩu (brute-force / credential stuffing) cho luồng đăng nhập định danh.
 
-Đếm số lần đăng nhập sai theo MÃ NHÂN VIÊN trong một cửa sổ thời gian; vượt ngưỡng thì
-tạm khóa tài khoản đó vài phút. Chỉ áp dụng cho luồng định danh (API /auth/login và
-/admin/login) — không dùng IP và không đụng tới luồng ẩn danh.
+Đếm số lần đăng nhập sai theo MÃ NHÂN VIÊN trong một cửa sổ thời gian; vượt ngưỡng thì tạm khóa
+tài khoản đó vài phút. Chỉ áp dụng cho luồng định danh (API /auth/login và /admin/login) — không
+dùng IP và không đụng tới luồng ẩn danh.
 
-Trạng thái lưu trong bộ nhớ tiến trình: đủ cho triển khai 1 tiến trình uvicorn. Nếu chạy
-nhiều worker / nhiều máy cần chuyển sang kho dùng chung (Redis...).
+Trạng thái lưu trong bảng `login_attempts` (models.identified.LoginAttempt): giữ nguyên khi khởi động
+lại server và dùng chung khi chạy nhiều worker / nhiều máy trỏ cùng CSDL.
 """
 from __future__ import annotations
 
 import logging
 import re
-import threading
 import time
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List
+from typing import Callable, Optional
+
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.identified import LoginAttempt
 
 logger = logging.getLogger("app.auth")
-
-
-@dataclass
-class _Entry:
-    failures: List[float] = field(default_factory=list)
-    locked_until: float = 0.0
 
 
 class LoginThrottle:
@@ -33,68 +28,71 @@ class LoginThrottle:
         max_failures: int,
         window_seconds: float,
         lockout_seconds: float,
-        clock: Callable[[], float] = time.monotonic,
+        clock: Callable[[], float] = time.time,
+        session_factory: Optional[Callable[[], Session]] = None,
     ) -> None:
         self.max_failures = max_failures
         self.window_seconds = window_seconds
         self.lockout_seconds = lockout_seconds
         self._clock = clock
-        self._entries: Dict[str, _Entry] = {}
-        self._lock = threading.Lock()
+        self._session_factory = session_factory
+
+    def _session(self) -> Session:
+        if self._session_factory is None:
+            from app.db.session import SessionLocal
+            self._session_factory = SessionLocal
+        return self._session_factory()
 
     @staticmethod
     def _key(employee_code: str) -> str:
-        return employee_code.strip().upper()
+        return employee_code.strip().upper()[:50]
 
     def retry_after(self, employee_code: str) -> int:
         """Số giây còn bị khóa (0 nếu được phép thử đăng nhập)."""
         now = self._clock()
-        with self._lock:
-            entry = self._entries.get(self._key(employee_code))
-            if entry is None or entry.locked_until <= now:
+        with self._session() as db:
+            row = db.get(LoginAttempt, self._key(employee_code))
+            if row is None or row.locked_until <= now:
                 return 0
-            return int(entry.locked_until - now) + 1
+            return int(row.locked_until - now) + 1
 
     def record_failure(self, employee_code: str) -> None:
         now = self._clock()
         key = self._key(employee_code)
-        with self._lock:
-            entry = self._entries.setdefault(key, _Entry())
-            entry.failures = [t for t in entry.failures if now - t < self.window_seconds]
-            entry.failures.append(now)
-            count = len(entry.failures)
+        with self._session() as db:
+            row = db.get(LoginAttempt, key)
+            if row is None:
+                row = LoginAttempt(account_key=key, fail_count=0, window_start=now, locked_until=0.0)
+                db.add(row)
+            if now - row.window_start >= self.window_seconds:
+                row.fail_count, row.window_start = 0, now
+            row.fail_count += 1
+            count = row.fail_count
             locked = count >= self.max_failures
             if locked:
-                entry.locked_until = now + self.lockout_seconds
-                entry.failures.clear()
-            self._prune(now)
+                row.locked_until = now + self.lockout_seconds
+                row.fail_count, row.window_start = 0, now
+            db.commit()
         # Luồng định danh (không phải ẩn danh) -> được ghi mã tài khoản; KHÔNG ghi IP.
         # Mã do người dùng nhập: lọc ký tự lạ để không thể chèn dòng log giả (log injection).
-        key = re.sub(r"[^A-Z0-9._-]", "?", key)
+        safe = re.sub(r"[^A-Z0-9._-]", "?", key)
         if locked:
             logger.warning("Tạm khóa đăng nhập tài khoản %s %d phút sau %d lần nhập sai",
-                           key[:50], int(self.lockout_seconds // 60), self.max_failures)
+                           safe, int(self.lockout_seconds // 60), self.max_failures)
         else:
-            logger.warning("Đăng nhập sai: tài khoản %s (lần %d/%d)", key[:50], count, self.max_failures)
+            logger.warning("Đăng nhập sai: tài khoản %s (lần %d/%d)", safe, count, self.max_failures)
 
     def record_success(self, employee_code: str) -> None:
-        with self._lock:
-            self._entries.pop(self._key(employee_code), None)
+        with self._session() as db:
+            db.query(LoginAttempt).filter(LoginAttempt.account_key == self._key(employee_code)).delete()
+            db.commit()
 
     def reset(self) -> None:
-        with self._lock:
-            self._entries.clear()
-
-    def _prune(self, now: float) -> None:
-        # Giữ bộ nhớ gọn: bỏ các mục đã hết khóa và không còn lần sai nào trong cửa sổ.
-        if len(self._entries) < 1024:
-            return
-        stale = [
-            k for k, e in self._entries.items()
-            if e.locked_until <= now and not any(now - t < self.window_seconds for t in e.failures)
-        ]
-        for k in stale:
-            del self._entries[k]
+        """Xóa toàn bộ bộ đếm (dùng trong kiểm thử). Tự tạo bảng nếu chưa có."""
+        with self._session() as db:
+            LoginAttempt.__table__.create(bind=db.get_bind(), checkfirst=True)
+            db.query(LoginAttempt).delete()
+            db.commit()
 
 
 login_throttle = LoginThrottle(

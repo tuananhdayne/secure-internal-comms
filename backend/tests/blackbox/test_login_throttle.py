@@ -1,4 +1,5 @@
 """Chống dò mật khẩu + tắt /docs trên bản bàn giao."""
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings, settings
@@ -14,6 +15,22 @@ class _Clock:
 
     def __call__(self) -> float:
         return self.now
+
+
+@pytest.fixture(autouse=True)
+def _clean_table():
+    from app.services.login_throttle import login_throttle as lt
+    lt.reset()
+    yield
+    lt.reset()
+
+
+def test_state_survives_new_instance() -> None:
+    """Bộ đếm lưu trong CSDL: instance mới (giả lập khởi động lại / worker khác) vẫn thấy khóa."""
+    clock = _Clock()
+    LoginThrottle(max_failures=2, window_seconds=60, lockout_seconds=120, clock=clock).record_failure("PERSIST")
+    LoginThrottle(max_failures=2, window_seconds=60, lockout_seconds=120, clock=clock).record_failure("PERSIST")
+    assert LoginThrottle(max_failures=2, window_seconds=60, lockout_seconds=120, clock=clock).retry_after("persist") > 0
 
 
 def test_throttle_locks_after_max_failures_and_expires() -> None:

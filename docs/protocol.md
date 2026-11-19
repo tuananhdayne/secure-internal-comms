@@ -5,7 +5,7 @@ Giao thức do dự án tự định nghĩa và **phải khớp từng byte** gi
 
 | Thành phần | Android | Server |
 |---|---|---|
-| Mã băm H | `domain/crypto/RsaBlindClient.computePayloadHash` | `app/crypto/blind_signature.py` `compute_payload_hash` |
+| Thông điệp ký mù + RFC 9474 | `domain/crypto/RsaBlindClient` (`payloadMessage`, `blind`, `finalize`) | `app/crypto/blind_signature.py` (`payload_message`, `BlindSignatureEngine`) |
 | ECIES | `domain/crypto/EciesHelper` | `app/crypto/ecies.py` |
 | Luồng gửi | `domain/submission/WhistleblowerSubmission.kt` | `app/api/v1/anonymous.py` `submit_anonymous_case` |
 | Dữ liệu kiểm thử | `src/test/.../ProtocolVectorsTest.kt` | `tests/blackbox/test_protocol_vectors.py` |
@@ -21,19 +21,26 @@ Chạy kiểm tra: `./dev.sh test` (server) và `cd android && ./gradlew testDeb
    - `encrypted_description` = ciphertext hex đầy đủ; `encrypted_title` = 32 ký tự hex đầu của ciphertext (chỉ để tương thích cột cũ, không mang thông tin riêng).
 4. Với mỗi tệp: ảnh được xóa EXIF/GPS **trước** khi băm; tính SHA-256 hex của byte sẽ gửi.
    Không có tệp nào → app gửi một tệp giữ chỗ `evidence_<ms>.bin` (server đánh dấu MIME `application/x-atbm-placeholder` và ẩn khỏi giao diện).
-5. Tính **H** (xem dưới), làm mù `m* = H · r^e mod n`, gửi `m*` tới `POST /api/v1/compliance/blind-sign` (có JWT, trừ 1 lượt/tuần).
-6. Bóc mù `s = s* · r⁻¹ mod n`, rồi gửi multipart **không kèm JWT** tới `POST /api/v1/anonymous/cases`.
-7. Server tính lại H từ dữ liệu nhận được và kiểm tra `s^e mod n == H`.
+5. Dựng **thông điệp** `msg` (xem dưới) rồi làm mù theo **RFC 9474** (RSABSSA-SHA384-PSS-Deterministic):
+   `m = OS2IP(EMSA-PSS-ENCODE(msg))` (SHA-384, MGF1-SHA384, salt 48 byte ngẫu nhiên), `m* = m · r^e mod n`;
+   gửi `"0x" + hex(m*)` tới `POST /api/v1/compliance/blind-sign` (có JWT, trừ 1 lượt/tuần).
+6. Server trả `s* = m*^d mod n` (đã tự kiểm tra `s*^e == m*`). App bóc mù `s = s* · r⁻¹ mod n` và **kiểm tra
+   `s^e mod n == m`** trước khi dùng, rồi gửi multipart **không kèm JWT** tới `POST /api/v1/anonymous/cases`.
+7. Server dựng lại `msg` và xác minh `s` là chữ ký **RSASSA-PSS chuẩn** của `msg` (thư viện `cryptography`).
 
-## Công thức H
+## Thông điệp được ký
 
 ```
-H = SHA256( category | enc_title | enc_desc | case_token | case_pubkey_hex | sha_1 | ... | sha_k ) mod n
+msg = category | enc_title | enc_desc | case_token | case_pubkey_hex | sha_1 | ... | sha_k     (bytes UTF-8)
 ```
 
 - Mỗi trường được **trim** khoảng trắng hai đầu rồi mã hóa UTF-8; dấu phân cách là byte `|`.
 - `sha_i` là SHA-256 hex chữ thường của từng tệp, **sắp xếp tăng dần** (thứ tự tải lên không quan trọng).
-- Vì sao: H ràng buộc nội dung + mã hồ sơ + khóa hồ sơ + từng tệp, nên tráo bất kỳ thành phần nào sau khi ký đều làm chữ ký vô hiệu.
+- Vì sao: chữ ký ràng buộc nội dung + mã hồ sơ + khóa hồ sơ + từng tệp, nên tráo bất kỳ thành phần nào
+  sau khi ký đều làm chữ ký vô hiệu.
+- Vì sao RFC 9474 thay cho RSA "trơn" (`s^e == SHA256(...) mod n`) trước đây: RSA trơn có tính nhân và giá trị
+  băm 256 bit không phủ miền 2048 bit; với PSS, chữ ký cuối cùng là chữ ký RSA-PSS tiêu chuẩn.
+  **App phiên bản cũ (RSA trơn) không gửi được nữa** — phải cài APK mới.
 
 ## ECIES
 

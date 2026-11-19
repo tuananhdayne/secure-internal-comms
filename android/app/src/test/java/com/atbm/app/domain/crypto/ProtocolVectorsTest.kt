@@ -12,7 +12,7 @@ import java.security.Signature
 /**
  * Kiểm thử giao thức bằng bộ dữ liệu DÙNG CHUNG với server: protocol/test_vectors.json
  * (sinh bởi backend/scripts/gen_protocol_vectors.py; phía Python: tests/blackbox/test_protocol_vectors.py).
- * Bên nào đổi cách tính H / ECIES / chữ ký mà bên kia không đổi theo -> test này báo lỗi ngay,
+ * Bên nào đổi thông điệp ký mù / PSS / ECIES / chữ ký mà bên kia không đổi theo -> test này báo lỗi ngay,
  * thay vì người dùng gặp "chữ ký không hợp lệ" khi gửi tố giác.
  */
 class ProtocolVectorsTest {
@@ -29,32 +29,35 @@ class ProtocolVectorsTest {
     private fun hexBytes(hex: String) = ByteArray(hex.length / 2) { i -> hex.substring(2 * i, 2 * i + 2).toInt(16).toByte() }
 
     @Test
-    fun payloadHashMatchesServer() {
-        val ph = vectors.getAsJsonObject("payload_hash")
-        val n = ph.hex("rsa_n_hex")
-        for (el in ph.getAsJsonArray("cases")) {
+    fun payloadMessageMatchesServer() {
+        for (el in vectors.getAsJsonObject("payload_message").getAsJsonArray("cases")) {
             val c = el.asJsonObject
-            val h = RsaBlindClient.computePayloadHash(
+            val msg = RsaBlindClient.payloadMessage(
                 category = c.get("category").asString,
                 encryptedTitle = c.get("encrypted_title").asString,
                 encryptedDescription = c.get("encrypted_description").asString,
                 caseToken = c.get("case_token").asString,
                 casePublicKeyHex = c.get("case_public_key").asString,
-                evidenceFileHashes = c.getAsJsonArray("evidence_file_hashes").map { it.asString },
-                n = n
+                evidenceFileHashes = c.getAsJsonArray("evidence_file_hashes").map { it.asString }
             )
-            assertEquals("H lệch ở trường hợp: ${c.get("name").asString}", c.get("expected_h_hex").asString, h.toString(16))
+            assertEquals("Thông điệp lệch ở trường hợp: ${c.get("name").asString}",
+                c.get("expected_message_hex").asString, msg.joinToString("") { "%02x".format(it) })
         }
     }
 
     @Test
-    fun blindSignatureUnblindMatchesServer() {
+    fun rfc9474BlindSignatureMatchesServer() {
         val v = vectors.getAsJsonObject("blind_signature")
-        val n = v.hex("n_hex"); val e = v.hex("e_hex"); val r = v.hex("r_hex")
-        assertEquals(v.hex("m_star_hex"), v.hex("h_hex").multiply(r.modPow(e, n)).mod(n))
-        val s = RsaBlindClient.unblindSignature(v.hex("s_star_hex"), r, n)
-        assertEquals(v.hex("s_hex"), s)
-        assertTrue(RsaBlindClient.verifySignature(v.hex("h_hex"), s, e, n))
+        val n = v.hex("n_hex"); val e = v.hex("e_hex")
+        val msg = hexBytes(v.get("message_hex").asString)
+        val salt = hexBytes(v.get("salt_hex").asString)
+        // EMSA-PSS-ENCODE phải ra đúng từng byte như server
+        val encoded = RsaBlindClient.emsaPssEncode(msg, n.bitLength() - 1, salt)
+        assertEquals(v.get("encoded_message_hex").asString, encoded.joinToString("") { "%02x".format(it) })
+        val blinding = RsaBlindClient.blind(msg, e, n, salt = salt, fixedR = v.hex("r_hex"))
+        assertEquals(v.hex("blinded_hex"), blinding.mStar)
+        val s = RsaBlindClient.finalize(v.hex("blind_signature_hex"), blinding, e, n)
+        assertEquals(v.hex("signature_hex"), s)
     }
 
     @Test

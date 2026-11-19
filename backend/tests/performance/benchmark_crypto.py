@@ -36,7 +36,9 @@ from app.crypto.key_manager import key_manager
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.ecies import ecies_encrypt, ecies_decrypt
 from app.crypto.sanitizer import strip_image_metadata
@@ -131,7 +133,7 @@ def main():
         )
 
     # 4. RSA-2048 Client Blinding
-    sample_h = BlindSignatureEngine.compute_payload_hash(
+    sample_h = payload_message(
         category="Tham nhũng",
         encrypted_title=encrypted_blob["ciphertext"][:20],
         encrypted_description=encrypted_blob["ciphertext"],
@@ -140,17 +142,17 @@ def main():
         evidence_file_hashes=["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
     )
     def bench_client_blinding():
-        _ = simulate_client_blinding(sample_h, e, n)
+        _ = client_blind(sample_h, e, n)
 
     # 5. RSA-2048 Officer Blind Sign
-    m_star, r = simulate_client_blinding(sample_h, e, n)
+    m_star, r, _m_enc = client_blind(sample_h, e, n)
     def bench_officer_sign():
         _ = BlindSignatureEngine.blind_sign(m_star)
 
     # 6. RSA-2048 Client Unblind & Verify
     s_star = BlindSignatureEngine.blind_sign(m_star)
     def bench_client_unblind_verify():
-        s = simulate_client_unblinding(s_star, r, n)
+        s = client_finalize(s_star, r, _m_enc, e, n)
         # verify: s^e mod N == H
         _ = (pow(s, e, n) == sample_h)
 

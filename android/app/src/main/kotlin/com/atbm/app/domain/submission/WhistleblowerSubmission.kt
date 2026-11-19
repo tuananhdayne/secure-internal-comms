@@ -150,20 +150,20 @@ suspend fun executeFullWhistleblowerFlow(
         }
 
         onStatus("Đang xác nhận quyền gửi… (3/4)")
-        val h = RsaBlindClient.computePayloadHash(
+        // Thông điệp được ký mù theo RFC 9474 (xem docs/protocol.md)
+        val message = RsaBlindClient.payloadMessage(
             category = category,
             encryptedTitle = encTitleHex,
             encryptedDescription = encDescHex,
             caseToken = caseToken,
             casePublicKeyHex = casePubKeyHex,
-            evidenceFileHashes = fileHashes,
-            n = n
+            evidenceFileHashes = fileHashes
         )
 
-        val blinding = RsaBlindClient.blindMessage(h, e, n)
-        val mStarHex = blinding.mStar.toString(16)
+        val blinding = RsaBlindClient.blind(message, e, n)
+        val mStarHex = "0x" + blinding.mStar.toString(16)  // luôn kèm 0x để server không hiểu nhầm là thập phân
 
-                val blindResp = NetworkClient.identifiedApi.requestBlindSign(
+        val blindResp = NetworkClient.identifiedApi.requestBlindSign(
             bearerToken = "Bearer $token",
             req = BlindSignRequest(blindedHash = mStarHex)
         )
@@ -178,8 +178,13 @@ suspend fun executeFullWhistleblowerFlow(
         val rawSig = blindResp.body()!!.blindSignature.removePrefix("0x").removePrefix("0X")
         val sStar = BigInteger(rawSig, 16)
 
-                val s = RsaBlindClient.unblindSignature(sStar, blinding.r, n)
-        val sHex = s.toString(16)
+        val s = try {
+            RsaBlindClient.finalize(sStar, blinding, e, n)
+        } catch (_: IllegalArgumentException) {
+            onStatus("Không thể xác nhận quyền gửi lúc này. Vui lòng thử lại sau.")
+            return@withContext
+        }
+        val sHex = "0x" + s.toString(16)
 
         // Lưu vào Secure Vault SQLCipher
         val vault = SecureVaultDatabase(context)

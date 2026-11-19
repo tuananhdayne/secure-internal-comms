@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 
 from app.db.session import engine, SessionLocal, Base
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine, simulate_client_blinding, simulate_client_unblinding
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message, simulate_client_blinding
 from app.api.v1.anonymous import router as anonymous_router
 
 app = FastAPI()
@@ -44,7 +44,7 @@ def test_submit_valid_case_success():
     enc_desc = "fedcba9876543210"
 
     # 3. Tính mã băm toàn vẹn H
-    H = BlindSignatureEngine.compute_payload_hash(
+    H = payload_message(
         category=category,
         encrypted_title=enc_title,
         encrypted_description=enc_desc,
@@ -55,9 +55,9 @@ def test_submit_valid_case_success():
 
     # 4. Làm mù & xin chữ ký mù
     e, n = key_manager.rsa_public_numbers
-    m_star, r = simulate_client_blinding(H, e, n)
+    m_star, r, _m_enc = client_blind(H, e, n)
     s_star = BlindSignatureEngine.blind_sign(m_star)
-    s = simulate_client_unblinding(s_star, r, n)
+    s = client_finalize(s_star, r, _m_enc, e, n)
     unblinded_sig_hex = hex(s)
 
     # 5. Nộp hồ sơ qua API Zero-Knowledge

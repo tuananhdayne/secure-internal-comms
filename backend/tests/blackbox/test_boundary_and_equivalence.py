@@ -25,7 +25,9 @@ from app.core.security import create_access_token, get_password_hash
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.key_manager import key_manager
 
@@ -188,7 +190,7 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
     file_bytes = b"SAFE_BINARY_EVIDENCE_CONTENT"
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 
-    h = BlindSignatureEngine.compute_payload_hash(
+    h = payload_message(
         category="An toàn thông tin",
         encrypted_title="enc_title",
         encrypted_description="enc_desc",
@@ -196,9 +198,9 @@ def test_error_guessing_path_traversal_filename_sanitized() -> None:
         case_public_key=case_pub_hex,
         evidence_file_hashes=[file_hash],
     )
-    m_star, r = simulate_client_blinding(h, e, n)
+    m_star, r, _m_enc = client_blind(h, e, n)
     s_star = BlindSignatureEngine.blind_sign(m_star)
-    s_hex = hex(simulate_client_unblinding(s_star, r, n))[2:]
+    s_hex = hex(client_finalize(s_star, r, _m_enc, e, n))[2:]
 
     resp = client.post(
         "/api/v1/anonymous/cases",

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from cryptography.hazmat.primitives.asymmetric import rsa
 from app.main import app
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message
 from app.crypto.ecies import ecies_encrypt
 from app.db.session import engine, SessionLocal, Base
 from app.models.anonymous import WhistleCase, CaseEvidence
@@ -47,7 +47,7 @@ def test_submit_case_with_multimedia_evidences(client):
     file_hashes = [img_hash, audio_hash, video_hash, doc_hash]
 
     # 3. Tính mã băm H và xin chữ ký mù
-    H = BlindSignatureEngine.compute_payload_hash(
+    H = payload_message(
         category=category,
         encrypted_title=enc_payload["ciphertext"][:32],
         encrypted_description=enc_payload["ciphertext"],
@@ -59,11 +59,10 @@ def test_submit_case_with_multimedia_evidences(client):
     # Giả lập làm mù và ký mù
     r = 13579
     e, n = key_manager.rsa_public_numbers
-    d, _ = key_manager.rsa_private_numbers
-    m_star = (H * pow(r, e, n)) % n
-    s_star = pow(m_star, d, n)
-    # Bóc mù
-    s = (s_star * pow(r, -1, n)) % n
+    m_star, r, m_enc = client_blind(H, e, n, r=r)
+    s_star = BlindSignatureEngine.blind_sign(m_star)
+    # Bóc mù + kiểm tra (RFC 9474 Finalize)
+    s = client_finalize(s_star, r, m_enc, e, n)
     s_hex = hex(s)
 
     # 4. Gửi request multipart

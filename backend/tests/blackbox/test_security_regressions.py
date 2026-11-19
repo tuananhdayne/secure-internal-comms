@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.crypto.key_manager import key_manager
-from app.crypto.blind_signature import BlindSignatureEngine
+from app.crypto.blind_signature import BlindSignatureEngine, client_blind, client_finalize, payload_message
 from app.crypto.ecies import ecies_encrypt
 from app.core.security import create_access_token, get_password_hash
 from app.db.session import engine, Base, SessionLocal
@@ -36,12 +36,13 @@ def _submit_case(client: TestClient, filename: str, mime: str, content: bytes = 
                  pub: str = "04" + "aa" * 64, extra_files: int = 0):
     enc = ecies_encrypt(key_manager.ec_public_key_hex, "T|||D".encode())
     token = f"CASE-{secrets.token_hex(16)}"
-    h = BlindSignatureEngine.compute_payload_hash(
+    h = payload_message(
         category="PoC", encrypted_title=enc["ciphertext"][:32], encrypted_description=enc["ciphertext"],
         case_token=token, case_public_key=pub, evidence_file_hashes=[hashlib.sha256(content).hexdigest()],
     )
-    d, n = key_manager.rsa_private_numbers
-    sig = hex(pow(h, d, n))
+    e_, n_ = key_manager.rsa_public_numbers
+    b_, r_, m_ = client_blind(h, e_, n_)
+    sig = hex(client_finalize(BlindSignatureEngine.blind_sign(b_), r_, m_, e_, n_))
     body = (
         f'--B\r\nContent-Disposition: form-data; name="files"; filename="{filename}"\r\n'
         f"Content-Type: {mime}\r\n\r\n"

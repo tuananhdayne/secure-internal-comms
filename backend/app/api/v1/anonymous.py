@@ -6,7 +6,7 @@ NGUYÊN TẮC BẢO MẬT CỦA CẢ MODULE:
 - `case_token` là "bí mật cầm tay" của người tố giác: không log, không đưa vào thông báo lỗi.
 
 Luồng nộp hồ sơ (POST /cases):
-    lưu tệp (services.evidence) -> tính H (BlindSignatureEngine.compute_payload_hash)
+    lưu tệp (services.evidence) -> dựng thông điệp (payload_message) -> xác minh chữ ký RSA-PSS RFC 9474
     -> kiểm s^e mod N == H -> lưu WhistleCase với created_bucket làm tròn giờ.
 """
 import re
@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.constants import CaseStatus, SenderType
-from app.crypto.blind_signature import BlindSignatureEngine, parse_rsa_int
+from app.crypto.blind_signature import BlindSignatureEngine, parse_rsa_int, payload_message
 from app.db.session import get_db
 from app.models.anonymous import CaseEvidence, CaseMessage, WhistleCase
 from app.schemas.anonymous import (
@@ -91,7 +91,7 @@ async def submit_anonymous_case(
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Không lưu được tệp bằng chứng: {exc}")
 
-    # 2. Tính lại H trên server và xác minh chữ ký mù đã bóc
+    # 2. Dựng lại thông điệp đã được ký mù và xác minh chữ ký RSA-PSS (RFC 9474)
     fields = dict(
         category=category.strip(),
         encrypted_title=encrypted_title.strip(),
@@ -99,16 +99,14 @@ async def submit_anonymous_case(
         case_token=token,
         case_public_key=case_public_key.strip(),
     )
-    expected_h = BlindSignatureEngine.compute_payload_hash(
-        **fields, evidence_file_hashes=[item.sha256 for item in stored]
-    )
+    message = payload_message(**fields, evidence_file_hashes=[item.sha256 for item in stored])
     raw_sig = unblinded_signature.strip()
     try:
         s = parse_rsa_int(raw_sig)
     except ValueError:
         evidence_service.discard(stored)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERR_SIG_FORMAT)
-    if not BlindSignatureEngine.verify(expected_h, s):
+    if not BlindSignatureEngine.verify(message, s):
         evidence_service.discard(stored)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERR_SIG_INVALID)
 

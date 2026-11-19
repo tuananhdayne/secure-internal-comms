@@ -3,7 +3,7 @@
 Kiểm thử Hộp trắng (White-Box Testing) cho tầng mật mã (`app/crypto/`):
 - Bao phủ câu lệnh (Statement Coverage) & Bao phủ nhánh (Branch/Decision Coverage)
 - Kiểm tra các điều kiện biên nội bộ của toán học RSA Blind Signature (m* <= 1, m* >= N, s <= 1, s >= N)
-- Kiểm tra tính bất biến thứ tự file băm trong compute_payload_hash
+- Kiểm tra tính bất biến thứ tự file băm trong payload_message
 - Kiểm tra các nhánh chuyển đổi hệ màu (RGB vs RGBA/P) và lột sạch EXIF trong strip_image_metadata
 """
 
@@ -16,7 +16,9 @@ import piexif
 from app.crypto.blind_signature import (
     BlindSignatureEngine,
     simulate_client_blinding,
-    simulate_client_unblinding,
+    client_finalize,
+    client_blind,
+    payload_message,
 )
 from app.crypto.key_manager import key_manager
 from app.crypto.sanitizer import strip_image_metadata
@@ -40,9 +42,9 @@ def test_verify_boundary_branches_return_false() -> None:
         assert BlindSignatureEngine.verify(valid_h, invalid_s) is False
 
 
-def test_compute_payload_hash_order_invariance_and_field_sensitivity() -> None:
+def test_payload_message_order_invariance_and_field_sensitivity() -> None:
     """WB-CRYPTO-03: Kiểm thử vòng lặp sorted(evidence_file_hashes) và độ nhạy từng trường."""
-    h1 = BlindSignatureEngine.compute_payload_hash(
+    h1 = payload_message(
         category="CatA",
         encrypted_title="TitleA",
         encrypted_description="DescA",
@@ -50,7 +52,7 @@ def test_compute_payload_hash_order_invariance_and_field_sensitivity() -> None:
         case_public_key="04" + "aa" * 64,
         evidence_file_hashes=["hash_b", "hash_a", "hash_c"],
     )
-    h2 = BlindSignatureEngine.compute_payload_hash(
+    h2 = payload_message(
         category="CatA",
         encrypted_title="TitleA",
         encrypted_description="DescA",
@@ -62,7 +64,7 @@ def test_compute_payload_hash_order_invariance_and_field_sensitivity() -> None:
     assert h1 == h2
 
     # Thay đổi bất kỳ 1 trường nào cũng phải tạo ra H hoàn toàn khác (Avalanche effect)
-    h_diff_cat = BlindSignatureEngine.compute_payload_hash(
+    h_diff_cat = payload_message(
         category="CatB",
         encrypted_title="TitleA",
         encrypted_description="DescA",
@@ -76,17 +78,17 @@ def test_compute_payload_hash_order_invariance_and_field_sensitivity() -> None:
 def test_client_blinding_coprime_and_full_cycle() -> None:
     """WB-CRYPTO-04: Kiểm thử bất biến gcd(r, N) == 1 và chu trình ký mù đầy đủ."""
     e, n = key_manager.rsa_public_numbers
-    h = 9876543210123456789
-    m_star, r = simulate_client_blinding(h, e, n)
+    h = b"thong-diep-kiem-thu|CASE-WB"
+    m_star, r, _m_enc = client_blind(h, e, n)
 
     assert 1 < r < n
     assert math.gcd(r, n) == 1
 
     s_star = BlindSignatureEngine.blind_sign(m_star)
-    s = simulate_client_unblinding(s_star, r, n)
+    s = client_finalize(s_star, r, _m_enc, e, n)
 
     assert BlindSignatureEngine.verify(h, s) is True
-    assert BlindSignatureEngine.verify(h + 1, s) is False
+    assert BlindSignatureEngine.verify(h + b"x", s) is False
 
 
 def test_sanitizer_rgb_and_rgba_branches() -> None:

@@ -2,7 +2,7 @@
 
     python scripts/gen_protocol_vectors.py      # ghi đè protocol/test_vectors.json
 
-Mục đích: giao thức nộp hồ sơ do dự án tự định nghĩa (mã băm H, ECIES, chữ ký mù, ECDSA) phải khớp
+Mục đích: giao thức nộp hồ sơ (thông điệp ký mù, RFC 9474 PSS, ECIES, ECDSA) phải khớp
 từng byte giữa hai nền tảng. Cả tests/blackbox/test_protocol_vectors.py và
 android/app/src/test/.../CryptoUnitTest.kt cùng đọc file JSON này; bên nào lệch là test báo ngay.
 
@@ -22,7 +22,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec, rsa  # noqa: E402
 
-from app.crypto.blind_signature import BlindSignatureEngine  # noqa: E402
+from app.crypto.blind_signature import (  # noqa: E402
+    BlindSignatureEngine, client_blind, client_finalize, emsa_pss_encode, payload_message,
+)
 from app.crypto.ecies import ecies_encrypt  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[2] / "protocol" / "test_vectors.json"
@@ -34,7 +36,7 @@ def main() -> None:
     nums = rsa_key.private_numbers()
     n, e, d = nums.public_numbers.n, nums.public_numbers.e, nums.d
 
-    hash_cases = []
+    msg_cases = []
     for case in [
         dict(name="cơ bản", category="Tham nhũng tài chính", encrypted_title="a1b2c3", encrypted_description="d4e5f6" * 8,
              case_token="CASE-" + "0f" * 16, case_public_key="04" + "ab" * 64,
@@ -45,21 +47,18 @@ def main() -> None:
         dict(name="không có tệp", category="Gian lận đấu thầu", encrypted_title="00", encrypted_description="11",
              case_token="CASE-" + "2d" * 16, case_public_key="04" + "ef" * 64, evidence_file_hashes=[]),
     ]:
-        h = BlindSignatureEngine.compute_payload_hash(
-            case["category"], case["encrypted_title"], case["encrypted_description"],
-            case["case_token"], case["case_public_key"], case["evidence_file_hashes"], n=n)
-        hash_cases.append({**case, "expected_h_hex": format(h, "x")})
+        msg = payload_message(case["category"], case["encrypted_title"], case["encrypted_description"],
+                              case["case_token"], case["case_public_key"], case["evidence_file_hashes"])
+        msg_cases.append({**case, "expected_message_hex": msg.hex()})
 
-    h = hash_cases[0]["expected_h_hex"]
-    h_int = int(h, 16)
-    while True:
-        r = secrets.randbelow(n - 2) + 2
-        if pow(r, -1, n):
-            break
-    m_star = (h_int * pow(r, e, n)) % n
-    s_star = pow(m_star, d, n)
-    s = (s_star * pow(r, -1, n)) % n
-    assert pow(s, e, n) == h_int
+    # --- RFC 9474 (RSABSSA-SHA384-PSS-Deterministic) với salt + r cố định để so khớp từng byte ---
+    msg = bytes.fromhex(msg_cases[0]["expected_message_hex"])
+    salt = secrets.token_bytes(48)
+    encoded = emsa_pss_encode(msg, n.bit_length() - 1, salt)
+    blinded, r, m = client_blind(msg, e, n, salt=salt)
+    s_star = pow(blinded, d, n)
+    s = client_finalize(s_star, r, m, e, n)
+    assert BlindSignatureEngine.verify(msg, s, e, n)
 
     # --- ECIES: server mã hóa, app giải mã (cùng HKDF/AES-GCM) ---
     ec_key = ec.generate_private_key(ec.SECP256R1())
@@ -76,10 +75,14 @@ def main() -> None:
 
     data = {
         "_note": "Sinh bởi backend/scripts/gen_protocol_vectors.py — KHÓA THỬ, không dùng cho hệ thống thật.",
-        "payload_hash": {"rsa_n_hex": format(n, "x"), "cases": hash_cases},
-        "blind_signature": {"n_hex": format(n, "x"), "e_hex": format(e, "x"), "h_hex": h,
-                            "r_hex": format(r, "x"), "m_star_hex": format(m_star, "x"),
-                            "s_star_hex": format(s_star, "x"), "s_hex": format(s, "x")},
+        "payload_message": {"cases": msg_cases},
+        "blind_signature": {
+            "scheme": "RFC 9474 RSABSSA-SHA384-PSS-Deterministic",
+            "n_hex": format(n, "x"), "e_hex": format(e, "x"),
+            "message_hex": msg.hex(), "salt_hex": salt.hex(), "encoded_message_hex": encoded.hex(),
+            "r_hex": format(r, "x"), "blinded_hex": format(blinded, "x"),
+            "blind_signature_hex": format(s_star, "x"), "signature_hex": format(s, "x"),
+        },
         "ecies": {"recipient_private_pkcs8_hex": pkcs8_hex, "recipient_public_hex": pub_hex,
                   "hkdf_info": "atbm-ecies-aes256gcm", "cases": ecies_cases},
         "ecdsa": {"public_hex": pub_hex, "private_pkcs8_hex": pkcs8_hex, "message_utf8": message,

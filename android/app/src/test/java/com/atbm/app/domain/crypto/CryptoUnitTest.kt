@@ -25,38 +25,35 @@ class CryptoUnitTest {
         val n = pub.modulus
         val d = priv.privateExponent
 
-        // 2. Client tính H
-        val category = "Tham nhũng"
-        val encTitle = "Tiêu đề mật"
-        val encDesc = "Mô tả mật"
-        val caseToken = "CASE-123456"
-        val casePubKey = "04112233"
-        val fileHashes = listOf("hash_file_a", "hash_file_b")
-
-        val h = RsaBlindClient.computePayloadHash(
-            category, encTitle, encDesc, caseToken, casePubKey, fileHashes, n
+        // 2. App dựng thông điệp cần ký mù
+        val msg = RsaBlindClient.payloadMessage(
+            "Tham nhũng", "Tiêu đề mật", "Mô tả mật", "CASE-" + "ab".repeat(16), "04112233",
+            listOf("hash_file_a", "hash_file_b")
         )
-        assertTrue(h > BigInteger.ONE && h < n)
 
-        // 3. Client làm mù: m* = (H * r^e) mod N
-        val blindingResult = RsaBlindClient.blindMessage(h, e, n)
-        val mStar = blindingResult.mStar
-        val r = blindingResult.r
+        // 3. App làm mù (RFC 9474 Blind): mã hóa PSS rồi nhân r^e
+        val blinding = RsaBlindClient.blind(msg, e, n)
+        assertTrue(blinding.mStar > BigInteger.ONE && blinding.mStar < n)
 
-        // 4. Officer ký mù: s* = (m*)^d mod N
-        val sStar = mStar.modPow(d, n)
+        // 4. Ban Thanh tra ký mù: s* = (m*)^d mod N
+        val sStar = blinding.mStar.modPow(d, n)
 
-        // 5. Client bóc mù: s = (s* * r^-1) mod N
-        val s = RsaBlindClient.unblindSignature(sStar, r, n)
+        // 5. App bóc mù + kiểm tra (RFC 9474 Finalize)
+        val s = RsaBlindClient.finalize(sStar, blinding, e, n)
 
-        // 6. Xác minh tính toàn vẹn toán học: s^e mod N == H
-        val isValid = RsaBlindClient.verifySignature(h, s, e, n)
-        assertTrue("Chữ ký mù sau khi bóc phải thỏa mãn s^e mod N == H", isValid)
+        // 6. Chữ ký cuối là RSASSA-PSS chuẩn: thư viện Java xác minh được
+        val verifier = java.security.Signature.getInstance("RSASSA-PSS").apply {
+            setParameter(java.security.spec.PSSParameterSpec("SHA-384", "MGF1", java.security.spec.MGF1ParameterSpec.SHA384, 48, 1))
+            initVerify(pub)
+        }
+        val sigBytes = s.toByteArray().let { if (it.size > 256) it.copyOfRange(it.size - 256, it.size) else ByteArray(256 - it.size) + it }
+        verifier.update(msg)
+        assertTrue("Chữ ký phải là RSA-PSS hợp lệ theo thư viện chuẩn", verifier.verify(sigBytes))
 
-        // Thử nghiệm tráo đổi H giả mạo -> Phải thất bại
-        val fakeH = h.add(BigInteger.ONE)
-        val isFakeValid = RsaBlindClient.verifySignature(fakeH, s, e, n)
-        assertFalse("H giả mạo không được phép khớp với chữ ký s", isFakeValid)
+        // 7. Chữ ký mù sai (vd. server trả bừa) phải bị Finalize từ chối
+        var rejected = false
+        try { RsaBlindClient.finalize(sStar.add(BigInteger.ONE), blinding, e, n) } catch (_: IllegalArgumentException) { rejected = true }
+        assertTrue("Finalize phải từ chối chữ ký mù không hợp lệ", rejected)
     }
 
     @Test
@@ -114,42 +111,16 @@ class CryptoUnitTest {
         assertEquals(64, videoHash.length)
         assertEquals(64, docHash.length)
 
-        val n = BigInteger("32317006071311007300714876688669951960444102669715484032130345427524655794193")
-        val hWithFiles = RsaBlindClient.computePayloadHash(
-            category = "Gian lận",
-            encryptedTitle = "enc_title",
-            encryptedDescription = "enc_desc",
-            caseToken = "CASE-101",
-            casePublicKeyHex = "04abcd",
-            evidenceFileHashes = listOf(audioHash, videoHash, docHash),
-            n = n
-        )
-        assertTrue(hWithFiles > BigInteger.ONE && hWithFiles < n)
-
-        // Kiểm tra thứ tự độc lập (sắp xếp hash tự động)
-        val hReversed = RsaBlindClient.computePayloadHash(
-            category = "Gian lận",
-            encryptedTitle = "enc_title",
-            encryptedDescription = "enc_desc",
-            caseToken = "CASE-101",
-            casePublicKeyHex = "04abcd",
-            evidenceFileHashes = listOf(docHash, audioHash, videoHash),
-            n = n
-        )
-        assertEquals("Thứ tự danh sách file hash đưa vào không được làm đổi mã băm H do cơ chế sorted()", hWithFiles, hReversed)
-
-        // Kiểm tra trường hợp 0 file (empty list)
-        val hEmpty = RsaBlindClient.computePayloadHash(
-            category = "Gian lận",
-            encryptedTitle = "enc_title",
-            encryptedDescription = "enc_desc",
-            caseToken = "CASE-101",
-            casePublicKeyHex = "04abcd",
-            evidenceFileHashes = emptyList(),
-            n = n
-        )
-        assertTrue(hEmpty > BigInteger.ONE && hEmpty < n)
-        assertTrue("H khi có file phải khác H khi không có file", hWithFiles != hEmpty)
+        fun msg(hashes: List<String>) = RsaBlindClient.payloadMessage(
+            "Gian lận", "enc_title", "enc_desc", "CASE-101", "04abcd", hashes
+        ).toString(Charsets.UTF_8)
+        val withFiles = msg(listOf(audioHash, videoHash, docHash))
+        // Thứ tự danh sách mã băm tệp không làm đổi thông điệp (sorted)
+        assertEquals(withFiles, msg(listOf(docHash, audioHash, videoHash)))
+        // Không có tệp -> thông điệp khác
+        val empty = msg(emptyList())
+        assertEquals("Gian lận|enc_title|enc_desc|CASE-101|04abcd", empty)
+        assertTrue(withFiles != empty)
     }
 
     @Test
